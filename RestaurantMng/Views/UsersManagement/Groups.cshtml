@@ -1,0 +1,314 @@
+﻿@*组别的增删改查*@
+<script type="text/javascript">
+
+    var currentGroupID = 0;
+    var currentGroupName = "";
+
+    $(function () {
+        $("#tb_group").datagrid({
+            url: "GetGroups",
+            fit: true,
+            fitColumns: true,
+            rownumbers: true,
+            singleSelect: true,
+            columns: [[
+                        { field: 'name', title: '组名', width: 100, align: "center" },
+                        { field: 'description', title: '描述说明', width: 300, align: "center" }
+                    ]],
+            toolbar: '#toolbar_group',
+            onDblClickRow: function (rowIndex, rowData) {
+                currentGroupID = rowData.id;
+                currentGroupName = rowData.name;
+                $("#tb_groupUser").datagrid({ url: "GetGroupUsers", queryParams: { group_id: currentGroupID} });
+                $("#tb_groupAut").datagrid({ url: "GetGroupAuts", queryParams: { group_id: currentGroupID} });
+                $("#group_aut").combobox("reload","@Url.Content("~/Items/GetAuthoritiesNotInGroup")" +"?groupId="+currentGroupID);
+                $("#group_user").combobox("reload","@Url.Content("~/Items/GetUsersNotInGroup")" +"?groupId="+currentGroupID);
+            }
+        });
+
+    });
+
+    var group_url;
+    function addGroup() {
+        $('#dlg_group').dialog('open').dialog('setTitle', '新增组别');
+        $('#fm_group').form('clear');
+        group_url = 'SaveGroup';
+    }
+    function editGroup() {
+        var row = $('#tb_group').datagrid('getSelected');
+        if (row) {
+            $('#dlg_group').dialog('open').dialog('setTitle', '编辑组别');
+            $('#fm_group').form('load', row);
+            group_url = 'UpdateGroup/' + row.id;
+        }
+    }
+
+    function saveGroup() {
+        $('#fm_group').form('submit', {
+            url: group_url,
+            onSubmit: function () {
+                return $(this).form('validate');
+            },
+            success: function (data) {
+                var result = eval('(' + data + ')');
+                if (result.success) {
+                    $('#dlg_group').dialog('close');      // close the dialog
+                    $('#tb_group').datagrid('reload');    // reload the user data
+                } else {
+                    $.messager.show({
+                        title: '提示',
+                        msg: result.msg
+                    });
+                }
+            }
+        });
+    }
+
+    function removeGroup() {
+        $.messager.confirm('删除确认', '确定要删除这一分组吗?', function (r) {
+            if (r) {
+                var row = $('#tb_group').datagrid('getSelected');
+                if (row) {
+                    $.post("RemoveGroup", { id: row.id }, function (result) {
+                        if (result.success) {
+                            $('#tb_group').datagrid('reload');
+                        } else {
+                            $.messager.show({
+                                title: '提示',
+                                msg: result.msg
+                            });
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    function queryGroup(value, name) {
+        $('#tb_group').datagrid('load', {
+            search_group: value
+        });
+    }
+
+</script>
+
+@*组别中用户的增删查*@
+<script type="text/javascript">
+    $(function () {
+        $("#tb_groupUser").datagrid({
+            fit:true,
+            fitColumns: true,
+            rownumbers: true,
+            singleSelect: true,
+            columns: [[
+                        { field: 'user_name', title: '用户名', width: 100, align: "center" },
+                        { field: 'real_name', title: '真实名', width: 100, align: "center" }
+            ]],
+            toolbar: '#toolbar_groupUser'
+        });
+    });
+
+    function addGroupUser() {
+        if (currentGroupID > 0) {
+            $('#dlg_groupUser').dialog('open').dialog('setTitle', '[' + currentGroupName + ']新增用户');
+            $('#fm_groupUser').form('clear');
+        }
+    }
+
+    function removeGroupUser() {
+        var user_row = $('#tb_groupUser').datagrid('getSelected');
+        if (user_row) {
+            var group_user_id = user_row.group_user_id;
+            $.post("RemoveGroupUser", { group_user_id: group_user_id }, function (result) {
+                if (result.success) {
+                    $('#tb_groupUser').datagrid('reload');
+                }
+                $.messager.show({
+                    title: '提示',
+                    msg: result.msg
+                });
+            });
+        }
+    }
+
+    function saveGroupUser(){
+        if (currentGroupID > 0) {
+            var user_id = $("#group_user").combobox("getValue");
+            $.post("SaveGroupUser", { group_id: currentGroupID, user_id: user_id }, function (result) {
+                if (result.success) {
+                    $('#dlg_groupUser').dialog('close');
+                    $('#tb_groupUser').datagrid('reload');
+                }
+                $.messager.show({
+                    title: '提示',
+                    msg: result.msg
+                });
+            });
+        }
+    }
+
+    function queryGroupUsers(value, name) {
+        $("#tb_groupUser").datagrid({ url: "GetGroupUsers", queryParams:
+        { group_id: currentGroupID, search_groupUser: value} });
+
+    }
+</script>
+
+@*组别中权限的增删改查*@
+<script type="text/javascript">
+    $(function () {
+        $("#tb_groupAut").datagrid({
+            fit: true,
+            fitColumns: true,
+            rownumbers: true,
+            singleSelect: true,
+            columns: [[
+                        { field: 'name', title: '权限名', width: 150, align: "center" },
+                        { field: 'description', title: '说明描述', width: 300, align: "center" }
+            ]],
+            toolbar: '#toolbar_groupAut'
+        });
+    });
+
+    function addGroupAut() {
+        if (currentGroupID > 0) {
+            $('#dlg_groupAut').dialog('open').dialog('setTitle', '[' + currentGroupName + ']新增权限');
+            //$('#fm_groupAut').form('clear');
+        }
+    }
+
+    function removeGroupAut() {
+        var aut_row = $('#tb_groupAut').datagrid('getSelected');
+        if (aut_row) {
+            var group_aut_id = aut_row.group_aut_id;
+            $.post("RemoveGroupAut", { group_aut_id: group_aut_id }, function (result) {
+                if (result.success) {
+                    $('#tb_groupAut').datagrid('reload');
+                }
+                $.messager.show({
+                    title: '提示',
+                    msg: result.msg
+                });
+            });
+        }
+    }
+
+    function saveGroupAut(){
+        if (currentGroupID > 0) {
+            var aut_id = $("#group_aut").combobox("getValue");
+            $.post("SaveGroupAut", { group_id: currentGroupID, aut_id: aut_id }, function (result) {
+                if (result.success) {
+                    //$('#dlg_groupAut').dialog('close');
+                    $('#tb_groupAut').datagrid('reload');
+                }
+                $.messager.show({
+                    title: '提示',
+                    msg: result.msg
+                });
+            });
+        }
+    }
+
+    function queryGroupAuts(value, name) {
+        $("#tb_groupAut").datagrid({ url: "GetGroupAuts", queryParams:
+        { group_id: currentGroupID, search_groupAut: value} });
+    }
+</script>
+
+<div class="easyui-layout" data-options="fit:'true'">
+    @*组中用户*@
+    <div data-options="region:'west',title:'组内用户',split:true" style="width: 260px">
+        <table id="tb_groupUser"></table>
+        <div id="toolbar_groupUser">
+            <a href="#" class="easyui-linkbutton" iconcls="icon-add" plain="true" onclick="addGroupUser()">加入用户</a>
+            <a href="#" class="easyui-linkbutton" iconcls="icon-remove" plain="true" onclick="removeGroupUser()">移除用户</a>
+            <input id="ss_groupUser" class="easyui-searchbox" style="width: 200px" searcher="queryGroupUsers" menu="#mm_groupUsers" prompt="please_input"></input>
+            <div id="mm_groupUsers" style="width: 100px">
+                <div name="search_group">搜索</div>
+            </div>
+        </div>
+        <div id="dlg_groupUser" class="easyui-dialog" style="width: 400px; height: 160px; padding: 10px 20px"
+             closed="true" buttons="#dlg_groupUser_buttons">
+            <div class="ftitle">
+                新增组别用户
+            </div>
+            <form id="fm_groupUser" method="post">
+                <div class="fitem">
+                    <label>用户:</label>
+                    <input id="group_user" name="group_user" class="easyui-combobox" panelheight="300" valuefield="id" textfield="name" required="true" />
+                </div>
+            </form>
+        </div>
+        <div id="dlg_groupUser_buttons">
+            <a href="#" class="easyui-linkbutton" iconcls="icon-ok" onclick="saveGroupUser()">保存</a>
+            <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript:$('#dlg_groupUser').dialog('close')">
+                取消
+            </a>
+        </div>
+    </div>
+
+    @*组中权限*@
+    <div data-options="region:'east',title:'组内权限',split:true" style="width: 380px">
+        <table id="tb_groupAut"></table>
+        <div id="toolbar_groupAut">
+            <a href="#" class="easyui-linkbutton" iconcls="icon-add" plain="true" onclick="addGroupAut()">加入权限</a>
+            <a href="#" class="easyui-linkbutton" iconcls="icon-remove" plain="true" onclick="removeGroupAut()">移除权限</a>
+            <input id="ss_groupAut" class="easyui-searchbox" style="width: 200px" searcher="queryGroupAuts" menu="#mm_groupAuts" prompt="please_input"></input>
+            <div id="mm_groupAuts" style="width: 100px">
+                <div name="search_groupAut">搜索</div>
+            </div>
+        </div>
+        <div id="dlg_groupAut" class="easyui-dialog" style="width: 400px; height: 160px; padding: 10px 20px"
+             closed="true" buttons="#dlg_groupAut_buttons">
+            <div class="ftitle">
+                新增组别权限
+            </div>
+            <form id="fm_groupAut" method="post">
+                <div class="fitem">
+                    <label>权限:</label>
+                    <input id="group_aut" name="group_aut" class="easyui-combobox" panelheight="300" valuefield="id" textfield="name" required="true" />
+                </div>
+            </form>
+        </div>
+        <div id="dlg_groupAut_buttons">
+            <a href="#" class="easyui-linkbutton" iconcls="icon-ok" onclick="saveGroupAut()">保存</a>
+            <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript:$('#dlg_groupAut').dialog('close')">取消</a>
+        </div>
+    </div>
+
+    @*组别*@
+    <div data-options="region:'center',title:'组别（双击分组查看组内用户和权限）'">
+        <table id="tb_group"></table>
+        <div id="toolbar_group">
+            <a href="#" class="easyui-linkbutton" iconcls="icon-add" plain="true" onclick="addGroup()">新建组别</a>
+            <a href="#" class="easyui-linkbutton" iconcls="icon-edit" plain="true" onclick="editGroup()">编辑组别</a>
+            <a href="#" class="easyui-linkbutton" iconcls="icon-remove" plain="true" onclick="removeGroup()">删除组别</a>
+            <input id="ss_group" class="easyui-searchbox" style="width: 200px" searcher="queryGroup" menu="#mm_groups" prompt="please_input"></input>
+            <div id="mm_groups" style="width: 100px">
+                <div name="search_group">搜索</div>
+            </div>
+        </div>
+        <div id="dlg_group" class="easyui-dialog" style="width: 400px; height: 210px; padding: 10px 20px"
+             closed="true" buttons="#dlg_group_buttons">
+            <div class="ftitle">
+                组别信息
+            </div>
+            <form id="fm_group" method="post">
+                <div class="fitem">
+                    <label>分组名:</label>
+                    <input name="name" class="easyui-validatebox" required="true" />
+                </div>
+                <div class="fitem">
+                    <label>说明描述:</label>
+                    <input name="description" class="easyui-validatebox" required="true" />
+                </div>
+            </form>
+        </div>
+        <div id="dlg_group_buttons">
+            <a href="#" class="easyui-linkbutton" iconcls="icon-ok" onclick="saveGroup()">保存</a>
+            <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript:$('#dlg_group').dialog('close')">
+                取消
+            </a>
+        </div>
+    </div>
+</div>

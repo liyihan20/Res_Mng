@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="2.0" xmlns:edmx="http://schemas.microsoft.com/ado/2008/10/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2008/10/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="fc7bce2f278443b5acb87cd5c7311f9f" Name="Diagram1">
+        <EntityTypeShape EntityType="DiningMngModel.dn_authority" Width="1.5" PointX="3" PointY="12.5" IsExpanded="true" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_eventLog" Width="1.5" PointX="7.875" PointY="2" IsExpanded="true" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_groupAuthority" Width="1.5" PointX="3" PointY="0.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_groups" Width="1.5" PointX="0.75" PointY="1.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_groupUser" Width="1.5" PointX="3" PointY="3" IsExpanded="true" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_users" Width="1.5" PointX="0.75" PointY="5.125" IsExpanded="true" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_groupAuthority_dn_authority" ManuallyRouted="false" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_groupAuthority_dn_groups" ManuallyRouted="false" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_groupUser_dn_groups" ManuallyRouted="false" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_groupUser_dn_users" ManuallyRouted="false" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_deleted_images" Width="1.5" PointX="5.25" PointY="8.5" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_dishes" Width="1.5" PointX="3" PointY="5.5" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_deleted_images_dn_dishes" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_dishes_dn_users" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_desks" Width="1.5" PointX="0.875" PointY="9.5" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_desks_dn_users" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_order" Width="1.5" PointX="7.875" PointY="4.875" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_orderEntry" Width="1.5" PointX="5.25" PointY="5.5" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_orderEntry_dn_dishes" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_orderEntry_dn_order" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_discountInfo" Width="1.5" PointX="9.5" PointY="6.375" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_discountInfoUsers" Width="1.5" PointX="9.5" PointY="10.125" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_points" Width="1.5" PointX="8.5" PointY="12.875" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_pointsForDish" Width="1.5" PointX="5.25" PointY="10.875" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_pointsRecord" Width="1.5" PointX="6.875" PointY="12.875" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_discountInfoUsers_dn_discountInfo" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_pointsForDish_dn_dishes" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_pointsForDishRecord" Width="1.5" PointX="5.25" PointY="14.5" />
+        <AssociationConnector Association="DiningMngModel.FK_dn_pointsForDishRecord_dn_pointsForDish" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_birthdayMealLog" Width="1.5" PointX="9.5" PointY="4" />
+        <EntityTypeShape EntityType="DiningMngModel.ei_users" Width="1.5" PointX="12.375" PointY="0.75" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_Restaurent" Width="1.5" PointX="11.125" PointY="6.75" />
+        <EntityTypeShape EntityType="DiningMngModel.dn_items" Width="1.5" PointX="12.375" PointY="9.75" />
+        <EntityTypeShape EntityType="DiningMngModel.vw_getHRDeps" Width="1.5" PointX="9.25" PointY="15.25" />
+        <EntityTypeShape EntityType="DiningMngModel.vw_getHREmps" Width="1.5" PointX="10.875" PointY="15.25" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

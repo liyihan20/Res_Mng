@@ -1,0 +1,73 @@
+﻿<script>
+    $(function () {
+        $("#depTree").tree({
+            url: "@Url.Content("~/UsersManagement/GetDepartment")",
+            onClick: function (node) {                
+                if ($('#depTree').tree('isLeaf', node.target)) {
+                    $("#userGrid").datagrid("loading");
+                    $.post("@Url.Content("~/UsersManagement/GetDepEmps")", { depId: node.id }, function (data) {
+                        $("#userGrid").datagrid("loadData", data);
+                        $("#userGrid").datagrid("loaded");
+                    });
+                } else {
+                    $('#depTree').tree('expand', node.target);
+                }
+            }
+        });
+
+        $("#userGrid").datagrid({
+            fit: true,
+            rownumbers: true,
+            singleSelect: true,
+            fitColumns: true,
+            columns: [[
+                { field: 'empNo', title: '厂牌', width:60,align:'center' },
+                { field: 'empName', title: '姓名', width: 60, align: 'center' },
+                { field: 'sex', title: '性别', width: 50, align: 'center' },
+                { field: 'depName', title: '部门', width: 150, align: 'center' },
+                { field: 'job', title: '职位', width: 80, align: 'center' },
+                { field: 'jobType', title: '薪资类别', width: 60, align: 'center' },
+                { field: 'idCode', title: '身份证', width: 100, align: 'center' }
+            ]]
+        });
+
+    });
+    function searchDepName(value, name) {
+        $.post("@Url.Content("~/UsersManagement/SearchDepsByName")", {depName:value}, function (data) {
+            if (data.suc) {
+                var deps = data.extra;
+                //var result = "";
+                for (var i = 0; i < deps.length; i++) {
+                    //result += deps[i] + ";";
+                    var depArr = deps[i].split(",");
+                    for (var j = 0; j < depArr.length; j++) {
+                        var depNode = $('#depTree').tree('find', depArr[j]);                        
+                        if (depNode == null) {
+                            return;
+                        }
+                        $('#depTree').tree('expand', depNode.target);
+                    }
+                }
+                //alert(result);
+            } else {
+                alert("检索不到部门:" + value);
+            }
+        });
+    }
+</script>
+<div class="easyui-layout" data-options="fit:true">
+    <div data-options="region:'west',title:'部门列表'" style="width:250px;">
+        <div class="easyui-layout" data-options="fit:true">
+            <div data-options="region:'north',border:'true'" style="height:34px;padding:5px;">
+                <input id="depSearch" class="easyui-searchbox" style="width:200px;"
+                       data-options="searcher:searchDepName,prompt:'输入部门名称搜索'" />                
+            </div>
+            <div data-options="region:'center'">
+                <ul id="depTree"></ul>
+            </div>
+        </div>
+    </div>
+    <div data-options="region:'center',title:'人员列表'">
+        <table id="userGrid"></table>
+    </div>
+</div>

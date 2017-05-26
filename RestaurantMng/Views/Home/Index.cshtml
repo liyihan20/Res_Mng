@@ -1,0 +1,132 @@
+﻿<div class="easyui-layout" fit="true" id="layout_page" style="visibility:hidden">
+    <div region="north" border="false" style="overflow: hidden; height: 40px;">
+        <div style="float: left; width: 200px; margin: 4px 4px;">
+            <img alt="logo" src="@Url.Content("~/Content/imgs/truly_logo.png")" style="border:0;" />
+        </div>
+        @*<div style="float: left; width: 320px; margin-left: 100px; font-size: 30px; font-family: Arial;letter-spacing: 10px;">
+            设备验收管理系统
+        </div>*@
+        <div style="position:absolute; top:5%;left:50%;margin:0 -180px 0 -200px; width: 320px; font-size: 30px; letter-spacing: 10px;">
+            会所后台管理系统
+        </div>
+        <div style="float: right; width: 180px; padding-top: 4px;">
+            <span id="chapas">
+                <a href="#" class="easyui-linkbutton" onclick="changePass()">
+                    <i class="fa fa-key"></i> 修改密码
+                </a>
+            </span>
+            <span id="logOut"><a href="@Url.Content("~/Account/LogOut")" class="easyui-linkbutton">
+                <i class="fa fa-sign-out"></i> 退出系统
+                </a>
+            </span>
+        </div>
+    </div>
+    <div region="south" border="false" style="height: 20px; padding: 3px; background: #efefef;">
+        <div>
+            <span style="margin: 0 0 0 30px;">当前登陆名: @ViewBag.userName</span>
+            <span style="margin: 0 0 0 30px;">姓名: @ViewBag.realName</span>
+            <span style="margin: 0 0 0 30px;">食堂管理权限: @ViewBag.resPowersName</span>
+        </div>
+    </div>
+    <div region="west" split="true" title="功能菜单" style="width: 180px; padding: 1px;">
+        <div id="acc">
+            @*在这里填充菜单*@
+        </div>
+    </div>
+    <div id="main_layout" region="center">
+        <div id="tabs" class="easyui-tabs" fit="true" border="false">
+            <div title="&lt;i class='fa fa-home'&gt;&lt;/i&gt; 主页">
+                <iframe frameborder="0" style="width:100%;height:100%;padding:0;margin:-2px 0px;" src="@Url.Content("~/Home/Main")"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    $(function () {
+        //Ajax获取菜单项
+        $.post("@Url.Content("~/Home/GetMenuItems")",{},function(data){
+            var htmls = "";
+            for (var i = 0; i < data.length; i++) {
+                if (parseFloat(data[i].number) >= 100) continue;//100以上的不是菜单项
+                if((data[i].number * 10) % 10 == 0){
+                    if (htmls != "") {
+                            htmls += "</div>";
+                        }
+                    htmls += "<div title=" + data[i].name + " data-options='iconCls:&quot;" + data[i].iconcls + "&quot;' style='overflow: auto; padding: 10px;text-align:center;'>";
+                 } else {
+                    htmls += "<a href='#' id='@Url.Content("~/")" + data[i].controller_name + "/" + data[i].action_name + "'><i class='fa " + data[i].iconcls + "'></i> " + data[i].name + "</a>";
+                 }
+            }
+            htmls += "</div>";
+            $("#acc").append(htmls);
+            $("#acc").accordion({fit:true});
+            $(".accordion-body a").linkbutton();
+            $(".accordion-body a").addClass("menu_btn");
+
+            $(".menu_btn").bind("click", function () {
+                $(this).find(".l-btn-text").find("i").removeClass("fa-spin");
+                var text = $(this).find(".l-btn-text").html();
+                var url = $(this).attr("id");
+                addTab(text, url);                
+            });
+
+            //加上一点效果，font awesome字体旋转效果
+            $(".menu_btn").bind("mouseenter", function () {
+                $(this).find(".l-btn-text").find("i").addClass("fa-spin");
+            });
+            $(".menu_btn").bind("mouseleave", function () {
+                $(this).find(".l-btn-text").find("i").removeClass("fa-spin");
+            });
+        });
+
+        $("#layout_page").css("visibility", "visible");
+
+        //如果有从邮件过来的链接，则打开这个链接Tab
+        if ('@ViewData["url"]' != '') {
+            addTab('@ViewData["text"]', '@ViewData["url"]');
+        }
+    });
+
+    function addTab(text, url) {
+        //如果标签已经存在，则不再新建，而是转到那个标签页
+        var tab = $('#tabs').tabs('getTab', text);
+        if (tab) {
+            $('#tabs').tabs('select', text);
+            if (tab.panel("options").id != url) {
+                $('#tabs').tabs('update', {
+                    tab: tab,
+                    options: {
+                        id: url,
+                        content: '<iframe frameborder="0" style="width:100%;height:100%;padding:0;margin:0;" src="' + url + '"></iframe>'
+                    }
+                });
+            }
+            return;
+        }
+        $('#tabs').tabs('add', {
+            id: url,
+            title: text,
+            content: '<iframe frameborder="0" style="width:100%;height:100%;padding:0;margin:-2px 0px;" src="' + url + '"></iframe>',
+            closable: true
+        });
+    }
+
+    function changePass() {
+        $('#dlg_password').dialog('open');
+        $('#fm_password').form('clear');
+    }
+    //保存可以选用的食堂列表
+    var resCombo;
+    var defaultRes = "";
+    $.post("@Url.Content("~/Items/GetResList")", "", function (data) {
+        resCombo = data;
+        if (data.length == 1) {            
+            defaultRes = data[0].value;
+        }
+    });
+
+</script>
+@Html.Partial("_ChangePasswordPartial")
+ 

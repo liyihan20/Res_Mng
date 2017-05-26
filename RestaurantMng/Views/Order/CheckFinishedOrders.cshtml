@@ -1,0 +1,280 @@
+﻿@section CSS{
+    <link href="@Url.Content("~/Content/themes/metro-blue/switchbutton.css")" rel="stylesheet" type="text/css" />
+    <style type="text/css">
+        #fm .easyui-textbox {
+            width: 120px;
+        }
+    </style>
+}
+@section Script{
+    <script type="text/javascript">
+        $(function () {
+            $("#dg_order").datagrid({
+                fit: true,
+                pagination: true,
+                pageSize: 100,
+                pageNumber: 1,
+                pageList: [10, 20, 50, 100, 200, 300],
+                url: "GetFinishedOrders",
+                queryParams: { searchValue: '@ViewData["searchValue"]', fromDate: '@ViewData["fromDate"]', toDate: '@ViewData["toDate"]' },
+                rownumbers: true,
+                singleSelect: true,
+                //fitColumns: true,
+                columns: [[
+                    { field: 'id', hidden: true },
+                    { field: 'order_no', title: '订单号', width: 100, align: 'center' },
+                    {
+                        field: 'status', title: '状态', width: 100, align: 'center', styler: function (value, row, index) {
+                            if (value == '已完成') {
+                                return 'color:green;';
+                            } else {
+                                return 'color:red;';
+                            }
+                        }
+                    },
+                    { field: 'user_name', title: '姓名', width: 100, align: 'center' },
+                    { field: 'arrive_day', title: '到达时间', width: 120, align: 'center' },
+                    { field: 'people_num', title: '人数', width: 60, align: 'center' },
+                    { field: 'is_in_room', title: '包间', width: 60, align: 'center' },
+                    { field: 'is_delivery', title: '配送', width: 60, align: 'center' },
+                    { field: 'desk_num', title: '台桌/房间号', width: 100, align: 'center' },
+                    { field: 'payment_type', title: '支付方式', width: 80, align: 'center' },
+                    { field: 'total_price', title: '应收金额', width: 80, align: 'center' },
+                    { field: 'real_price', title: '实收金额', width: 80, align: 'center' },
+                    { field: 'res_no', title: '所属食堂', width: 100, align: 'center' }
+                ]],
+                toolbar: [{
+                    text: '查看详细',
+                    iconCls: 'icon-search',
+                    handler: CheckDetail
+                }, '-',
+                {
+                    text: '导出excel',
+                    iconCls: 'icon-xls',
+                    handler: function () {
+                        window.location.href = "@Url.Content("~/Excel/ExportFinishedOrderExcel?searchValue=")"
+                            + $("#searchValue").val() + "&fromDate=" + $("#fromDate").datebox("getValue")
+                            + "&toDate=" + $("#toDate").datebox("getValue");
+                    }
+                }],
+                onDblClickRow: CheckDetail
+            });
+
+            $("#order_detail").datagrid({
+                fit: true,
+                rownumbers: true,
+                singleSelect: true,
+                fitColumns: true,
+                columns: [[
+                    { field: 'type', title: '类型', width: 60, align: 'center' },
+                    { field: 'number', title: '序号', width: 60, align: 'center' },
+                    { field: 'name', title: '名称', width: 120, align: 'center' },
+                    { field: 'price', title: '单价', width: 60, align: 'center' },
+                    { field: 'qty', title: '数量', width: 60, align: 'center' },
+                    { field: 'total', title: '小计', width: 60, align: 'center' },
+                    { field: 'benefit_info', title: '优惠信息', width: 100, align: 'center' }
+                ]]
+            });
+
+            $("#auditResult").switchbutton({
+                checked: true,
+                onText: 'OK',
+                offText: 'NG',
+                onChange: function (checked) {
+                    if (checked) {
+                        $("#bookInfo").fadeIn();
+                    } else {
+                        $("#bookInfo").fadeOut();
+                    }
+                }
+            });
+
+            $("#searchBtn").on("click", function () {
+                $("#dg_order").datagrid("load",
+                    {
+                        searchValue: $("#searchValue").val(),
+                        fromDate: $("#fromDate").datebox("getValue"),
+                        toDate: $("#toDate").datebox("getValue")
+                    });
+            });
+        });
+
+        function CheckDetail() {
+            var row = $('#dg_order').datagrid('getSelected');
+            if (row) {
+                $('#fm').form('clear');
+                $("#fm").form("load", row);
+                if (row.is_delivery == "是") {
+                    $("#delivery_info").show();
+                } else {
+                    $("#delivery_info").hide();
+                }
+
+                //加载预定菜式列表
+                $("#order_detail").datagrid("loading");
+                $.post("@Url.Content("~/Order/GetOrderDetail")", { id: row.id }, function (data) {
+                    $("#order_detail").datagrid("loadData", data);
+                    $("#order_detail").datagrid("loaded");
+                });
+
+                if (row.audit_result == "true") {
+                    $("#audit_result").switchbutton("check");
+                    $("#bookInfo").show();
+                } else {
+                    $("#audit_result").switchbutton("uncheck");
+                    $("#bookInfo").hide();
+                }
+                $("#dlg_order .easyui-textbox").textbox("readonly");
+                $("#dlg_order .easyui-numberbox").numberbox("readonly");
+                $("#audit_result").switchbutton("readonly");
+                $('#dlg_order').dialog('open');
+            }
+        }
+    </script>
+}
+
+<div class="easyui-layout" data-options="fit:true">
+    <div data-options="region:'north',title:'查询选项'" style="height:68px;padding:5px;">
+        到达日期: <input class="easyui-datebox" name="fromDate" id="fromDate" value="@ViewData["fromDate"]" style="width:100px;" />
+        到: <input class="easyui-datebox" name="toDate" id="toDate" value="@ViewData["toDate"]" style="width:100px;" />
+        &nbsp;
+        用户名或订单号: <input class="easyui-textbox" name="searchValue" id="searchValue" value="@ViewData["searchValue"]" />
+        <a id="searchBtn" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-search'">搜索</a>
+    </div>
+    <div data-options="region:'center'">
+        <table id="dg_order"></table>
+    </div>
+</div>
+
+<div id="dlg_order" class="easyui-dialog" style="width:680px;padding:10px 10px" closed="true" buttons="#dlg_order_buttons">
+    <div class="ftitle"><i class="fa fa-cube"></i> 预约订单信息</div>
+    <form id="fm" method="post">
+        <table cellpadding="2" border="0" cellspacing="3">
+            <tr>
+                <td>订单号:</td>
+                <td>
+                    <input class="easyui-textbox" name="order_no" />
+                </td>
+                <td>状态:</td>
+                <td>
+                    <input class="easyui-textbox" name="status" />
+                </td>
+                <td>姓名:</td>
+                <td>
+                    <input class="easyui-textbox" name="user_name" />
+                </td>
+            </tr>
+            <tr>
+                <td>人数:</td>
+                <td>
+                    <input class="easyui-textbox" name="people_num" />
+                </td>
+                <td>到达时段:</td>
+                <td>
+                    <input class="easyui-textbox" name="arrive_time" />
+                </td>
+                <td>到达时间:</td>
+                <td>
+                    <input class="easyui-textbox" name="arrive_day" />
+                </td>
+            </tr>
+            <tr>
+                <td>支付方式:</td>
+                <td>
+                    <input class="easyui-textbox" name="payment_type" />
+                </td>
+                <td>应收金额:</td>
+                <td>
+                    <input class="easyui-textbox" name="total_price" />
+                </td>
+                <td>是否包间:</td>
+                <td>
+                    <input class="easyui-textbox" name="is_in_room" />
+                </td>
+            </tr>
+            <tr>
+                <td>是否配送:</td>
+                <td>
+                    <input class="easyui-textbox" name="is_delivery" />
+                </td>
+                <td>用户备注:</td>
+                <td>
+                    <input class="easyui-textbox" name="user_comment" />
+                </td>
+                <td>申请时间:</td>
+                <td>
+                    <input class="easyui-textbox" name="create_time" />
+                </td>
+            </tr>
+            <tr>
+                <td>订餐电话:</td>
+                <td>
+                    <input class="easyui-textbox" name="order_phone" />
+                </td>
+                <td>优惠信息:</td>
+                <td>
+                    <input class="easyui-textbox" name="benefit_info" />
+                </td>
+                <td>所属食堂:</td>
+                <td>
+                    <input class="easyui-textbox" name="res_no" />
+                </td>
+            </tr>
+            <tr id="delivery_info">
+                <td>配送地址:</td>
+                <td>
+                    <input class="easyui-textbox" name="delivery_addr" />
+                </td>
+                <td>收件人:</td>
+                <td>
+                    <input class="easyui-textbox" name="recipient" />
+                </td>
+                <td>联系电话:</td>
+                <td>
+                    <input class="easyui-textbox" name="recipient_phone" />
+                </td>
+            </tr>
+        </table>
+
+
+        <div class="easyui-panel" title="订单明细" style="width:580px;height:135px;">
+            <table id="order_detail"></table>
+        </div>
+
+        <table cellpadding="2" border="0" cellspacing="3">
+            <tr>
+                <td style="width:72px;">审核结果:</td>
+                <td style="width:100px;">
+                    <input class="easyui-switchbutton" id="audit_result" name="audit_result" style="width:60px;" data-options="onText:'OK',offText:'NG'">
+                </td>
+                <td>
+                    审核意见:
+                </td>
+                <td colspan="3">
+                    <input class="easyui-textbox" name="audit_comment" id="audit_comment" style="width:310px;" />
+                </td>
+            </tr>
+            <tr id="bookInfo">
+                <td>
+                    台桌/房间号:
+                </td>
+                <td>
+                    <input class="easyui-textbox" id="desk_num" name="desk_num" style="width:100px;" />
+                </td>
+                <td>
+                    预约牌号:
+                </td>
+                <td>
+                    <input class="easyui-textbox" name="book_card_num" id="book_card_num" style="width:120px;" />
+                </td>
+                <td>实收金额:</td>
+                <td>
+                    <input class="easyui-numberbox" name="real_price" id="real_price" data-options="min:0,precision:1" style="width:120px;" >
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="dlg_order_buttons">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript: $('#dlg_order').dialog('close')">关闭</a>
+</div>

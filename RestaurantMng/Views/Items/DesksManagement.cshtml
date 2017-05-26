@@ -1,0 +1,176 @@
+﻿@section Script{
+
+    <script type="text/javascript">
+        $(function () {
+            $("#dg_desk").datagrid({
+                title: "台桌列表",
+                fit: true,
+                pagination: true,
+                pageSize: 100,
+                pageNumber: 1,
+                pageList: [10, 20, 50, 100, 200, 300],
+                url: "GetDesks",
+                rownumbers: true,
+                singleSelect: true,
+                //fitColumns: true,
+                columns: [[
+                    { field: 'id', hidden: true },
+                    { field: 'belong_to', title: '所属', width: 100, align: 'center' },
+                    { field: 'number', title: '编号', width: 60, align: 'center' },
+                    { field: 'name', title: '名称', width: 100, align: 'center' },
+                    { field: 'seat_qty', title: '座位数', width: 60, align: 'center' },
+                    { field: 'is_cancel', title: '状态', width: 60, align: 'center' },
+                    { field: 'open_weekday', title: '开放日', width: 160, align: 'center' },
+                    { field: 'open_time', title: '开放时段', width: 120, align: 'center' },
+                    { field: 'create_time', title: '创建时间', width: 120, align: 'center' },
+                    { field: 'last_update_time', title: '更新时间', width: 120, align: 'center' }
+                ]],
+                toolbar: "#desk_toolbar",
+                onDblClickRow: editDesk
+            });
+            $("#search").searchbox({
+                searcher: function (value, name) {
+                    $('#dg_desk').datagrid('load', {
+                        searchValue: value
+                    });
+                },
+                prompt: '输入内容搜索'
+            });
+        })
+
+        function addDesk() {
+            $('#fm').form('clear');
+            $('#dlg_desk').dialog('open').dialog('setTitle', '新增台桌');
+        }
+        function editDesk() {
+            $('#fm').form('clear');
+            var row = $('#dg_desk').datagrid('getSelected');
+            if (row) {
+                $("#fm").form("load", row);
+                $('#dlg_desk').dialog('open').dialog('setTitle', '编辑台桌');
+            }
+        }
+        function toggleStatus() {
+            var row = $('#dg_desk').datagrid('getSelected');
+            if (row) {
+                $.post("ToggleDeskStatus", { id: row.id }, function (data) {
+                    if (data.suc) {
+                        $('#dg_desk').datagrid('reload');
+                    }
+                    $.messager.show({
+                        title: '提示',
+                        msg: data.msg
+                    });
+                })
+            }
+        }
+        function saveDesk() {
+            $('#fm').form('submit', {
+                url: 'SaveDesk',
+                onSubmit: function () {
+                    return $(this).form('validate');
+                },
+                success: function (data) {
+                    var result = eval('(' + data + ')');
+                    if (result.suc) {
+                        $('#dlg_desk').dialog('close');
+                        $('#dg_desk').datagrid('reload'); 
+                    } else {
+                        $.messager.show({
+                            title: '提示',
+                            msg: result.msg
+                        });
+                    }
+                }
+            });
+        }
+        
+    </script>
+
+
+}
+<div class="easyui-layout" data-options="fit:true" id="ly_desk">
+    <div data-options="region:'center'">
+        <table id="dg_desk"></table>
+        <div id="desk_toolbar">
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-add',plain:true,disabled:@ViewData["disable_power"]" onclick="addDesk()">新增</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-edit',plain:true,disabled:@ViewData["disable_power"]" onclick="editDesk()">修改</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-remove',plain:true,disabled:@ViewData["disable_power"]" onclick="toggleStatus()">作废/正常</a>
+            <input id="search" />
+        </div>
+    </div>
+</div>
+
+<div id="dlg_desk" class="easyui-dialog" style="width:600px;padding:10px 20px" closed="true" buttons="#dlg_desk_buttons">
+    <div class="ftitle"><i class="fa fa-cube"></i> 台桌信息</div>
+    <form id="fm" method="post">
+        <input type="hidden" name="id" id="id" />
+        <table id="deskDetailTb" cellpadding="2" border="0" cellspacing="3">
+            <tr>
+                <td>所属:</td>
+                <td>
+                    <select name="belong_to" class="easyui-combobox" required="true" style="width: 170px;" panelheight="auto">
+                        <option value="大堂">大堂</option>
+                        <option value="包间">包间</option>
+                    </select>
+                </td>
+                <td>编号:</td>
+                <td>
+                    <input name="number" class="easyui-validatebox" required="true" style="width:168px;" />
+                </td>
+            </tr>
+            <tr>
+                <td>名称:</td>
+                <td>
+                    <input name="name" class="easyui-validatebox" style="width:168px;" />
+                </td>
+                <td>座位数:</td>
+                <td>
+                    <input name="seat_qty" class="easyui-numberbox" required="true" style="width:170px;" />
+                </td>
+            </tr>
+            <tr>
+                <td>开放日:</td>
+                <td>
+                    <select name="open_weekday" class="easyui-combobox" multiple="true" required="true" style="width: 170px;" panelheight="auto">
+                        <option value="每天">每天</option>
+                        <option value="周一">周一</option>
+                        <option value="周二">周二</option>
+                        <option value="周三">周三</option>
+                        <option value="周四">周四</option>
+                        <option value="周五">周五</option>
+                        <option value="周六">周六</option>
+                        <option value="周日">周日</option>
+                    </select>
+                </td>
+                <td>开放时段:</td>
+                <td>
+                    <select name="open_time" class="easyui-combobox" multiple="true" required="true" style="width: 170px;" panelheight="auto">
+                        <option value="全天">全天</option>
+                        <option value="早餐">早餐</option>
+                        <option value="午餐">午餐</option>
+                        <option value="晚餐">晚餐</option>
+                        <option value="宵夜">宵夜</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>状态</td>
+                <td>
+                    <select name="is_cancel" class="easyui-combobox" required="true" style="width: 170px;" panelheight="auto">
+                        <option value="正常">正常</option>
+                        <option value="作废">作废</option>
+                    </select>
+                </td>
+                <td></td>
+                <td>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="dlg_desk_buttons">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-ok" onclick="saveDesk()">保存</a>
+    <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript: $('#dlg_desk').dialog('close')">取消</a>
+</div>
+

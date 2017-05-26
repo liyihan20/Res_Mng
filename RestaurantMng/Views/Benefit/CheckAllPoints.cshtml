@@ -1,0 +1,79 @@
+﻿@section Script{
+
+    <script type="text/javascript">
+        $(function () {
+            $("#dg_points").datagrid({
+                title: "客户积分列表",
+                fit: true,
+                pagination: true,
+                pageSize: 100,
+                pageNumber: 1,
+                pageList: [10, 20, 50, 100, 200, 300],
+                url: "GetAllUserPoints",
+                rownumbers: true,
+                singleSelect: true,
+                fitColumns: true,
+                columns: [[
+                    { field: 'id', hidden: true },
+                    { field: 'user_no', title: '厂牌', width: 60, align: 'center' },
+                    { field: 'user_name', title: '姓名', width: 60, align: 'center' },
+                    { field: 'points', title: '当前积分', width: 60, align: 'center' },
+                    { field: 'res_name', title: '所属食堂', width: 60, align: 'center' },
+                    { field: 'last_change', title: '最近积分变动时间', width: 80, align: 'center' }
+                ]],
+                toolbar: "#points_toolbar",
+                onDblClickRow: checkPointRecord
+            });
+            $("#search").searchbox({
+                searcher: function (value, name) {
+                    $('#dg_points').datagrid('load', {
+                        searchValue: value
+                    });
+                },
+                prompt: '输入厂牌或姓名搜索'
+            });
+            $("#dg_userPointRecord").datagrid({
+                title: "积分详情",
+                fit: true,
+                rownumbers: true,
+                singleSelect: true,
+                fitColumns: true,
+                columns: [[
+                    { field: 'income', title: '积分变化', width: 60, align: 'center' },
+                    { field: 'info', title: '事项', width: 160, align: 'center' },
+                    { field: 'op_date', title: '时间', width: 80, align: 'center' }
+                ]]
+            });
+        })
+
+        function checkPointRecord() {
+            var row = $('#dg_points').datagrid('getSelected');
+            if (row) {
+                $.post("GetCertainUserPoint", { userNo: row.user_no,resNo:row.res_no }, function (data) {
+                    $("#dg_userPointRecord").datagrid("loadData", data);
+                });
+                $('#dlg_userPoint').dialog('open').dialog('setTitle', row.user_name+'的积分记录');
+            }
+        }
+
+    </script>
+
+
+}
+<div class="easyui-layout" data-options="fit:true">
+    <div data-options="region:'center'">
+        <table id="dg_points"></table>
+        <div id="points_toolbar">
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-help',plain:true" onclick="checkPointRecord()">查看积分详情</a>
+            <input id="search" />
+        </div>
+    </div>
+</div>
+
+<div id="dlg_userPoint" class="easyui-dialog" style="width:600px;height:400px;" closed="true" buttons="#dlg_userPoint_buttons">
+    <table id="dg_userPointRecord"></table>
+</div>
+<div id="dlg_userPoint_buttons">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript: $('#dlg_userPoint').dialog('close')">关闭</a>
+</div>
+

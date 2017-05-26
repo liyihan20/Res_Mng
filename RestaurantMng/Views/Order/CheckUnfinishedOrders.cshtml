@@ -1,0 +1,386 @@
+﻿@section CSS{
+    <link href="@Url.Content("~/Content/themes/metro-blue/switchbutton.css")" rel="stylesheet" type="text/css" />
+    <style type="text/css">
+        #fm .easyui-textbox {
+            width: 108px;
+        }
+    </style>
+}
+@section Script{
+
+    <script type="text/javascript">
+    $(function () {
+        $("#dg_order").datagrid({
+            title: "预约列表",
+            fit: true,
+            pagination: true,
+            pageSize: 100,
+            pageNumber: 1,
+            pageList: [10, 20, 50, 100, 200, 300],
+            url: "GetUnfinishedOrders",
+            rownumbers: true,
+            singleSelect: true,
+            //fitColumns: true,
+            columns: [[
+                { field: 'id', hidden: true },
+                { field: 'order_no', title: '订单号', width: 100, align: 'center' },
+                { field: 'status', title: '状态', width: 80, align: 'center' },
+                { field: 'user_name', title: '姓名', width: 100, align: 'center' },
+                { field: 'arrive_day', title: '到达时间', width: 120, align: 'center' },
+                { field: 'people_num', title: '人数', width: 80, align: 'center' },
+                { field: 'is_in_room', title: '包间', width: 60, align: 'center' },
+                { field: 'is_delivery', title: '配送', width: 60, align: 'center' },
+                { field: 'order_phone', title: '订餐电话', width: 80, align: 'center' },
+                { field: 'desk_num', title: '台桌/房间号', width: 80, align: 'center' },
+                { field: 'payment_type', title: '支付方式', width: 80, align: 'center' },
+                { field: 'total_price', title: '应收金额', width: 80, align: 'center' },
+                { field: 'real_price', title: '实收金额', width: 80, align: 'center' },
+                { field: 'res_name', title: '所属食堂', width: 100, align: 'center' }
+            ]],
+            toolbar: "#order_toolbar",
+            onDblClickRow: auditOrder
+        });
+        $("#search").searchbox({
+            searcher: function (value, name) {
+                $('#dg_order').datagrid('load', {
+                    searchValue: value
+                });
+            },
+            prompt: '输入订单号或姓名搜索'
+        });
+
+        $("#order_detail").datagrid({
+            fit: true,
+            rownumbers: true,
+            singleSelect: true,
+            fitColumns: true,
+            columns: [[
+                { field: 'type', title: '类型', width: 60, align: 'center' },
+                { field: 'number', title: '序号', width: 60, align: 'center' },
+                { field: 'name', title: '名称', width: 120, align: 'center' },
+                { field: 'price', title: '单价', width: 60, align: 'center' },
+                { field: 'qty', title: '数量', width: 60, align: 'center' },
+                { field: 'total', title: '小计', width: 60, align: 'center' },
+                { field: 'benefit_info', title: '优惠信息', width: 100, align: 'center' }
+            ]]
+        });
+
+        $("#auditResult").switchbutton({
+            checked: true,
+            onText: 'OK',
+            offText: 'NG',
+            onChange: function (checked) {
+                if (checked) {
+                    $("#bookInfo").fadeIn();
+                } else {
+                    $("#bookInfo").fadeOut();
+                }
+            }
+        });
+
+    })
+
+    //打开审核窗口
+    function auditOrder() {
+        var row = $('#dg_order').datagrid('getSelected');
+        if (row) {
+            $('#fm').form('clear');
+            $('#audit_fm').form('clear');
+            $("#fm").form("load", row);
+            if (row.is_delivery == "是") {
+                $("#delivery_info").show();
+            } else {
+                $("#delivery_info").hide();
+            }
+            //加载预定菜式列表
+            $("#order_detail").datagrid("loading");
+            $.post("@Url.Content("~/Order/GetOrderDetail")", { id: row.id }, function (data) {
+                $("#order_detail").datagrid("loadData", data);
+                $("#order_detail").datagrid("loaded");
+            });
+
+            $("#fm .easyui-textbox").textbox("readonly");
+
+            if (row.res_name != "会所") {
+                $("#deskTextTD").hide();
+                $("#deskTextTD").next("td").hide();
+            } else {
+                $("#deskTextTD").show();
+                $("#deskTextTD").next("td").show();
+            }
+            $('#audit_fm').form("load", row);
+            //审核信息
+            if (row.status == "等待审核") {
+                ToggleAuditForm(false);
+                $("#real_price").numberbox("setValue", row.total_price);
+                //$("#desk_num").combobox('reload', '@Url.Content("~/Items/GetDeskByType?time=")' + row.arrive_time + "&isInRoom=" + row.is_in_room);
+            } else {
+                //已审核，将输入框设置readonly
+                ToggleAuditForm(true);
+            }            
+            $("#auditResult").switchbutton("check");
+            $("#orderId").val(row.id);
+            $("#dlg_desk").dialog({ href: "@Url.Content("~/Items/VisibleDesks?orderNo=")"+row.order_no });
+            $('#dlg_order').dialog('open');
+        }
+    }
+    //反审核
+    function unAuditOrder() {
+        var row = getRow("此申请还未审核");
+        if (row) {
+            $.post("@Url.Content("~/Order/unAuditOrder")", { id: row.id }, function (data) {
+                refleshData();
+                showMsg(data.msg);
+            });
+        }
+    }
+    //修改结算方式
+    function changePayType() {
+        var row = getRow("只能修改已审核的预约申请，未审核的申请用户可以自行修改");
+        if (row) {
+            $.post("@Url.Content("~/Order/ChangePayType")", { id: row.id }, function (data) {
+                refleshData();
+                showMsg(data.msg);
+            });
+        }
+    }
+    //现金支付
+    function payWithCash() {
+        var row = getRow("预约订单还未审核，现金支付失败");
+        if (row) {
+            $.post("@Url.Content("~/Order/payWithCash")", { id: row.id }, function (data) {
+                showMsg(row.order_no + ":" + data.msg);
+                refleshData();
+            });
+        }
+    }
+    //打印订单
+    function printOrder() {
+        var row = getRow("还未审核，不能打印");
+        if (row) {
+            window.open("@Url.Content("~/Order/PrintOrder?id=")" + row.id);
+        }
+    }
+    //刷新数据
+    function refleshData() {
+        $('#dg_order').datagrid("reload");
+    }
+    //开始审核
+    function beginAudit() {
+        $('#audit_fm').form('submit', {
+            url: 'BeginAudit',
+            success: function (data) {
+                var result = eval('(' + data + ')');
+                if (result.suc) {
+                    $('#dlg_order').dialog('close');      // close the dialog
+                    refleshData();
+                }
+                showMsg(result.msg);
+            }
+        });
+    }
+    function getRow(tip) {
+        var row = $('#dg_order').datagrid('getSelected');
+        if (row) {
+            if (row.status != "等待审核") {
+                return row;
+            } else {
+                showMsg(tip);
+            }
+            return null;
+        }
+    };
+    function showMsg(msg) {
+        $.messager.show({
+            title: '提示',
+            msg: msg
+        });
+    };
+
+    //切换审核表单的控件只读状态
+    function ToggleAuditForm(readonly) {
+        $("#auditResult").switchbutton("readonly", readonly);
+        //$("#desk_num").combobox("readonly", readonly);
+        $("#real_price").numberbox("readonly", readonly);
+        $("#audit_fm .easyui-textbox").textbox("readonly", readonly);
+        $("#desk_num").textbox("readonly", true);
+        if (readonly) {
+            $("#auditBt").hide();
+            $("#selectDeskBt").hide();
+        } else {
+            $("#auditBt").show();
+            $("#selectDeskBt").show();
+        }
+    }
+
+    //选择台桌
+    function confirmDesk() {
+        console.log($("#SelectedDesk").val());
+        $("#desk_num").textbox("setValue",$("#SelectedDesk").val());
+        $('#dlg_desk').dialog('close');
+    }
+
+    </script>
+
+
+}
+<div class="easyui-layout" data-options="fit:true">
+    <div data-options="region:'center'">
+        <table id="dg_order"></table>
+        <div id="order_toolbar">
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-edit',plain:true,disabled:@ViewData["disable_power"]" onclick="auditOrder()">审核申请</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-undo',plain:true,disabled:@ViewData["disable_power"]" onclick="unAuditOrder()">反审核</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-pay',plain:true,disabled:@ViewData["disable_power"]" onclick="changePayType()">修改支付方式</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-money',plain:true,disabled:@ViewData["disable_power"]" onclick="payWithCash()">现金支付</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-print',plain:true,disabled:@ViewData["disable_power"]" onclick="printOrder()">打印订单</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-reload',plain:true" onclick="refleshData()">刷新列表</a>
+            <input id="search" />
+        </div>
+    </div>
+</div>
+
+<div id="dlg_order" class="easyui-dialog" modal="true" style="width:680px;padding:10px 10px" closed="true" buttons="#dlg_order_buttons" title="审核预约申请">
+    <div class="ftitle"><i class="fa fa-cube"></i> 预约订单信息</div>
+    <form id="fm" method="post">
+        <input type="hidden" name="id" id="id" />
+        <table cellpadding="2" border="0" cellspacing="3">
+            <tr>
+                <td>订单号:</td>
+                <td>
+                    <input class="easyui-textbox" name="order_no" />
+                </td>
+                <td>状态:</td>
+                <td>
+                    <input class="easyui-textbox" name="status" />
+                </td>
+                <td>姓名:</td>
+                <td>
+                    <input class="easyui-textbox" name="user_name" />
+                </td>
+            </tr>
+            <tr>
+                <td>人数:</td>
+                <td>
+                    <input class="easyui-textbox" name="people_num" />
+                </td>
+                <td>到达时段:</td>
+                <td>
+                    <input class="easyui-textbox" name="arrive_time" />
+                </td>
+                <td>到达时间:</td>
+                <td>
+                    <input class="easyui-textbox" name="arrive_day" />
+                </td>
+            </tr>
+            <tr>
+                <td>支付方式:</td>
+                <td>
+                    <input class="easyui-textbox" name="payment_type" />
+                </td>
+                <td>应收金额:</td>
+                <td>
+                    <input class="easyui-textbox" name="total_price" />
+                </td>
+                <td>是否包间:</td>
+                <td>
+                    <input class="easyui-textbox" name="is_in_room" />
+                </td>
+            </tr>
+            <tr>
+                <td>是否配送:</td>
+                <td>
+                    <input class="easyui-textbox" name="is_delivery" />
+                </td>
+                <td>用户备注:</td>
+                <td>
+                    <input class="easyui-textbox" name="user_comment" />
+                </td>
+                <td>申请时间:</td>
+                <td>
+                    <input class="easyui-textbox" name="create_time" />
+                </td>
+            </tr>
+            <tr>
+                <td>订餐电话:</td>
+                <td>
+                    <input class="easyui-textbox" name="order_phone" />
+                </td>
+                <td>优惠信息:</td>
+                <td>
+                    <input class="easyui-textbox" name="benefit_info" />
+                </td>
+                <td>所属食堂:</td>
+                <td>
+                    <input class="easyui-textbox" name="res_name" />
+                </td>
+            </tr>
+            <tr id="delivery_info">
+                <td>配送地址:</td>
+                <td>
+                    <input class="easyui-textbox" name="delivery_addr" />
+                </td>
+                <td>收件人:</td>
+                <td>
+                    <input class="easyui-textbox" name="recipient" />
+                </td>
+                <td>收件电话:</td>
+                <td>
+                    <input class="easyui-textbox" name="recipient_phone" />
+                </td>
+            </tr>
+        </table>
+    </form>
+
+    <div class="easyui-panel" title="订单明细" style="width:640px;height:135px">
+        <table id="order_detail"></table>
+    </div>
+
+    <form id="audit_fm" method="post" style="padding:10px 30px;">
+        <input type="hidden" name="orderId" id="orderId" />
+        <table cellpadding="2" border="0" cellspacing="3">
+            <tr>
+                <td style="width:72px;">审核结果:</td>
+                <td style="width:120px;">
+                    <input id="auditResult" name="auditResult" style="width:60px;">
+                </td>
+                <td>
+                    审核意见:
+                </td>
+                <td colspan="3">
+                    <input class="easyui-textbox" name="audit_comment" id="audit_comment" style="width:280px;" />
+                </td>
+            </tr>
+            <tr id="bookInfo">
+                <td id="deskTextTD">
+                    台桌/房间号:
+                </td>
+                <td>
+                    <input class="easyui-textbox" name="desk_num" id="desk_num" style="width:60px;" />
+                    <a href="#" class="easyui-linkbutton" id="selectDeskBt" iconcls="icon-search" onclick="javascript: $('#dlg_desk').dialog('open')">选择</a>
+                    @*<input class="easyui-combobox" id="desk_num" name="desk_num" data-options="valueField:'value',textField:'text',editable:false" style="width:100px;" />*@
+                </td>
+                <td>
+                    预约牌号:
+                </td>
+                <td>
+                    <input class="easyui-textbox" name="book_card_num" id="book_card_num" style="width:80px;" />
+                </td>
+                <td>实收金额:</td>
+                <td>
+                    <input type="text" class="easyui-numberbox" name="real_price" id="real_price" data-options="min:0,precision:1" style="width:80px;">
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="dlg_order_buttons">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript: $('#dlg_order').dialog('close')">取消</a>
+    <a href="#" class="easyui-linkbutton" id="auditBt" iconcls="icon-ok" onclick="beginAudit()">保存</a>
+</div>
+
+<div id="dlg_desk" class="easyui-dialog" modal="true" style="width:580px;min-height:400px; padding:10px 10px" closed="true" buttons="#dlg_desk_buttons" title="选择台桌">
+</div>
+<div id="dlg_desk_buttons">    
+    <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript: $('#dlg_desk').dialog('close')">取消</a>
+    <a href="#" class="easyui-linkbutton" id="auditBt" iconcls="icon-ok" onclick="confirmDesk()">确定</a>
+</div>

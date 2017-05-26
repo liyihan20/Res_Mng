@@ -1,0 +1,114 @@
+﻿
+<script type="text/javascript">
+    $(function () {
+        $("#dg_notDone").datagrid({
+            title:"今日等待制作列表（每20秒自动刷新）",
+            fit: true,
+            url: "GetDishToDoToday",
+            rownumbers: true,
+            singleSelect: true,
+            fitColumns: true,
+            columns: [[
+                { field: 'id', hidden: true },
+                { field: 'arrive_day', title: '就餐时间', width: 60, align: 'center' },
+                { field: 'name', title: '菜名', width: 80, align: 'center' },
+                { field: 'qty', title: '数量', width: 60, align: 'center' },
+                { field: 'order_no', title: '订单号', width: 80, align: 'center' },
+                { field: 'people_num', title: '人数', width: 60, align: 'center' },
+                { field: 'user_name', title: '下单人', width: 60, align: 'center' }
+            ]],
+            toolbar: "#toolbar_notDone",
+            onLoadSuccess: function (data) {
+                $("#toolbar_notDone .textbox-prompt").focus();
+            }
+        });
+
+        $("#dg_isDone").datagrid({
+            title: "今日已制作列表",
+            fit: true,
+            url: "GetDishDoneToday",
+            rownumbers: true,
+            singleSelect: true,
+            fitColumns: true,
+            columns: [[
+                { field: 'id', hidden: true },
+                { field: 'arrive_day', title: '就餐时间', width: 60, align: 'center' },
+                { field: 'name', title: '菜名', width: 80, align: 'center' },
+                { field: 'qty', title: '数量', width: 60, align: 'center' },
+                { field: 'order_no', title: '订单号', width: 80, align: 'center' },
+                { field: 'people_num', title: '人数', width: 60, align: 'center' },
+                { field: 'user_name', title: '下单人', width: 60, align: 'center' },
+                { field: 'done_time', title: '完成时间', width: 60, align: 'center' }
+            ]],
+            toolbar: [{
+                text: '返回制作',
+                iconCls: 'icon-redo',
+                handler: DishReDone
+            }]
+        });
+
+    });
+    //每20秒刷新一次列表
+    window.setInterval(function () {
+        if (new Date().getHours() >= 7 && new Date().getHours() <= 23) {
+            $("#dg_notDone").datagrid("reload");
+        }
+    }, 20000);
+
+    function qq(value, name) {
+        if (value.indexOf("-") < 0) {
+            showMsg("条形码不正确");
+            return;
+        }
+        $.post("@Url.Content("~/Order/DishIsDoneByScanner")", { code: value }, function (data) {
+            if (data.suc) {
+                $("#codeInput").searchbox("setValue", "");
+                ReloadTwoGrid();
+            }
+            showMsg(data.msg);
+        });
+    }
+    function DishIsDone() {
+        var row = $('#dg_notDone').datagrid('getSelected');
+        if (row) {
+            $.post("@Url.Content("~/Order/DishIsDone")", { id: row.id }, function (data) {
+                if (data.suc) {
+                    $("#codeInput").searchbox("setValue", "");
+                    ReloadTwoGrid();
+                }
+                showMsg(data.msg);
+            });
+        }
+    }
+    function DishReDone() {
+        var row = $('#dg_isDone').datagrid('getSelected');
+        if (row) {
+            $.post("@Url.Content("~/Order/DishReDone")", { id: row.id }, function (data) {
+                if (data.suc) {                    
+                    ReloadTwoGrid();
+                }
+                showMsg(data.msg);
+            });
+        }
+    }
+    function ReloadTwoGrid() {
+        $("#dg_notDone").datagrid("reload");
+        $("#dg_isDone").datagrid("reload");
+    }
+
+</script>
+<div class="easyui-layout" data-options="fit:true">
+    <div data-options="region:'east'" style="width:50%;">
+        <table id="dg_isDone"></table>
+    </div>
+    <div data-options="region:'center'">
+        <table id="dg_notDone"></table>
+    </div>
+</div>
+<div id="toolbar_notDone">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-ok" plain="true" onclick="DishIsDone()">制作完成</a>
+    <input id="codeInput" class="easyui-searchbox" style="width:300px" searcher="qq" menu="#mm_users" prompt="光标点此扫条形码" />
+    <div id="mm_users" style="width:100px">
+        <div name="search_info">扫码区</div>
+    </div>
+</div>

@@ -1,0 +1,151 @@
+﻿@section Script{
+    <script>
+    $(function () {
+        $("#dg_pa").datagrid({
+            title: "参数设置列表",
+            fit: true,
+            url: "GetParamsSetting",
+            rownumbers: true,
+            singleSelect: true,
+            //fitColumns: true,
+            columns: [[
+                { field: 'id', hidden: true },
+                { field: 'name', title: '参数名', width: 120, align: 'center' },
+                { field: 'value', title: '参数值', width: 100, align: 'center' },
+                { field: 'res_name', title: '所属食堂', width: 120, align: 'center' },
+                { field: 'comment', title: '说明', width: 260, align: 'center' },
+                { field: 'create_username', title: '创建人', width: 100, align: 'center' },
+                { field: 'create_date', title: '创建日期', width: 120, align: 'center' },
+                { field: 'modify_date', title: '修改日期', width: 120, align: 'center' }
+            ]],
+            onDblClickRow: editParam,
+            toolbar: [{
+                text: '增加',
+                iconCls: 'icon-add',
+                handler: addParam,
+                disabled:!Boolean('@ViewData["addParamPower"]')
+            }, '-', {
+                text: '修改',
+                iconCls: 'icon-edit',
+                handler: editParam
+            }, '-', {
+                text: '删除',
+                iconCls: 'icon-remove',
+                handler: removeParam,
+                disabled: !Boolean('@ViewData["removeParamPower"]')
+            }]
+        });
+
+
+        $(".res_no").combobox({
+            valueField: "value",
+            textField: "text",
+            panelHeight: "auto",
+            required: true,
+            editable: false,
+            value: self.parent.defaultRes,
+            data: self.parent.resCombo,
+            onChange: function (newValue, oldValue) {
+                $("#dishName").combobox({ url: "@Url.Content("~/Items/GetAllSellingDishName?res_no=")" + newValue });
+                }
+            });
+        });
+
+        function addParam() {
+            $('#fm').form('clear');
+            $('#dlg_pa').dialog('open').dialog('setTitle', '新增参数设置');
+            if (self.parent.defaultRes) {
+                $(".res_no").combobox("setValue", self.parent.defaultRes);
+            }
+        }
+
+        function editParam() {
+            $('#fm').form('clear');
+            var row = $('#dg_pa').datagrid('getSelected');
+            if (row) {
+                $("#fm").form("load", row);
+                $('#dlg_pa').dialog('open').dialog('setTitle', '修改参数设置');
+                if (!Boolean('@ViewData["addParamPower"]')) {
+                    $("#name").validatebox("readonly");
+                    $("#comment").attr("readonly", "readonly");
+                }
+            }
+        }
+
+        function SaveParam() {
+            $('#fm').form('submit', {
+                url: 'SaveParamSetting',
+                onSubmit: function () {
+                    return $(this).form('validate');
+                },
+                success: function (data) {
+                    var result = eval('(' + data + ')');
+                    if (result.suc) {
+                        $('#dlg_pa').dialog('close');
+                        $('#dg_pa').datagrid('reload');
+                    } else {
+                        showMsg(result.msg);
+                    }
+                }
+            });
+        }
+
+        function removeParam() {
+            $.messager.confirm('删除确认', '确定要删除这一行吗?', function (r) {
+                if (r) {
+                    var row = $('#dg_pa').datagrid('getSelected');
+                    if (row) {
+                        $.post("RemoveParamSetting", { id: row.id }, function (result) {
+                            if (result.suc) {
+                                $('#dg_pa').datagrid('reload');
+                            } else {
+                                showMsg(result.msg);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+    </script>
+}
+<div class="easyui-layout" data-options="fit:true">
+    <div data-options="region:'center'">
+        <table id="dg_pa"></table>
+    </div>
+</div>
+<div id="dlg_pa" class="easyui-dialog" style="width:500px;padding:10px 20px" closed="true" buttons="#dlg_pa_buttons">
+    <div class="ftitle"><i class="fa fa-gear"></i> 食堂参数设置</div>
+    <form id="fm" method="post">
+        <input type="hidden" name="id" id="id" />
+        <table cellpadding="2" border="0" cellspacing="3">
+            <tr>
+                <td>参数名:</td>
+                <td>
+                    <input name="name" id="name" class="easyui-validatebox" data-options="required:true" style="width:120px;" />
+                </td>
+                <td>参数值:</td>
+                <td>
+                    <input name="value" class="easyui-validatebox" data-options="required:true" style="width:120px;" />
+                </td>
+            </tr>
+            <tr>
+                <td>所属食堂:</td>
+                <td>
+                    <input class="res_no" name="res_no" style="width:120px;" />
+                </td>
+                <td></td><td></td>
+            </tr>
+            <tr>
+                <td>说明:</td>
+                <td colspan="3">
+                    <textarea cols="40" rows="3" name="comment"></textarea>                    
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="dlg_pa_buttons">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-ok" onclick="SaveParam()">保存</a>
+    <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript: $('#dlg_pa').dialog('close')">取消</a>
+</div>

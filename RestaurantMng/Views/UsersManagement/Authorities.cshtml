@@ -1,0 +1,146 @@
+﻿<script type="text/javascript">
+
+    $(function () {
+        $("#dg_auts").datagrid({
+            fit: true,
+            title: '权限列表',
+            url: 'GetAuthorities',
+            fitColumns: true,
+            rownumbers: true,
+            singleSelect: true,
+            columns: [[
+                        { field: 'number', title: '编号', width: 50, align: 'center' },
+                        { field: 'name', title: '权限名称', width: 100, align: 'center' },
+    					{ field: 'en_name', title: '权限EN名称', width: 120, align: 'center' },
+    					{ field: 'controler_name', title: '对应控制器', width: 100, align: 'center' },
+                        { field: 'action_name', title: '对应方法', width: 120, align: 'center' },
+    					{field: 'iconcls', title: '图标', width: 50, align: 'center',
+    					    formatter: function (value, row, index) {                                
+    					        if (value.substr(0, 2) == "fa") {
+    					            //fontawesome 图标字体
+    					            return "<i class='fa " + value + "'></i>";
+    					        } else {
+    					            //小图标
+    					            return "<img alt='icon' width='12' height='12' src='" + "@Url.Content("~/Content/themes/icons/")" + value.substr(5, value.length - 5) + ".png' />";
+    					        }
+    					    }
+    					},
+                        { field: 'description', title: '说明描述', width: 250 }
+            ]],
+            toolbar: '#toolbar_auts'
+        });
+    });
+
+    var url;
+    function newAut() {
+        $('#dlg_aut').dialog('open').dialog('setTitle', '新增权限');
+        $('#fm').form('clear');
+        url = 'SaveAuthority';
+    }
+    function editAut() {
+        var row = $('#dg_auts').datagrid('getSelected');
+        if (row) {
+            $('#dlg_aut').dialog('open').dialog('setTitle', '编辑权限');
+            $('#fm').form('load', row);
+            url = 'UpdateAuthority/' + row.id;
+        }
+    }
+
+    function saveAut() {
+        $('#fm').form('submit', {
+            url: url,
+            onSubmit: function () {
+                return $(this).form('validate');
+            },
+            success: function (data) {
+                var result = eval('(' + data + ')');
+                if (result.success) {
+                    $('#dlg_aut').dialog('close');      // close the dialog
+                    $('#dg_auts').datagrid('reload');    // reload the user data
+                } else {
+                    $.messager.show({
+                        title: '提示',
+                        msg: result.msg
+                    });
+                }
+            }
+        });
+    }
+
+    function removeAut() {
+        $.messager.confirm('删除确认', '确定要删除这一行吗?', function (r) {
+            if (r) {
+                var row = $('#dg_auts').datagrid('getSelected');
+                if (row) {
+                    $.post("RemoveAuthority", { id: row.id }, function (result) {
+                        if (result.success) {
+                            $('#dg_auts').datagrid('reload');
+                        } else {
+                            $.messager.show({
+                                title: '提示',
+                                msg: result.msg
+                            });
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    function qq(value, name) {
+        $('#dg_auts').datagrid('load', {
+            searchValue: value
+        });
+    }
+
+</script>
+
+<table id="dg_auts"></table>
+<div id="toolbar_auts">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-add" plain="true" onclick="newAut()">新建权限</a>
+    <a href="#" class="easyui-linkbutton" iconcls="icon-edit" plain="true" onclick="editAut()">编辑权限</a>
+    <a href="#" class="easyui-linkbutton" iconcls="icon-remove" plain="true" onclick="removeAut()">删除权限</a>
+    <input id="ss" class="easyui-searchbox" style="width:300px" searcher="qq" menu="#mm_auts" prompt="please_input"></input>
+    <div id="mm_auts" style="width:100px">
+        <div name="search_info">搜索</div>
+    </div>
+</div>
+
+<div id="dlg_aut" class="easyui-dialog" style="width:400px;height:380px;padding:10px 20px"
+     closed="true" buttons="#dlg_aut_buttons">
+    <div class="ftitle">权限信息</div>
+    <form id="fm" method="post">
+        <div class="fitem">
+            <label>编号:</label>
+            <input name="number" class="easyui-numberbox" precision="2" required="true" />
+        </div>
+        <div class="fitem">
+            <label>权限名:</label>
+            <input name="name" class="easyui-validatebox" required="true" />
+        </div>
+        <div class="fitem">
+            <label>权限名EN:</label>
+            <input name="en_name" class="easyui-validatebox" required="true" />
+        </div>
+        <div class="fitem">
+            <label>对应控制器:</label>
+            <input name="controler_name" class="easyui-validatebox" />
+        </div>
+        <div class="fitem">
+            <label>对应方法:</label>
+            <input name="action_name" class="easyui-validatebox" />
+        </div>
+        <div class="fitem">
+            <label>图标:</label>
+            <input name="iconcls" class="easyui-validatebox" />
+        </div>
+        <div class="fitem">
+            <label>说明描述:</label>
+            <input name="description" class="easyui-validatebox" />
+        </div>
+    </form>
+</div>
+<div id="dlg_aut_buttons">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-ok" onclick="saveAut()">保存</a>
+    <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript:$('#dlg_aut').dialog('close')">取消</a>
+</div>

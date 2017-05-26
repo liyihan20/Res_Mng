@@ -1,0 +1,312 @@
+﻿@section Script{
+
+    <script type="text/javascript">
+        $(function () {
+            $("#dg_dish").datagrid({
+                title: "菜式列表",
+                fit: true,
+                pagination: true,
+                pageSize: 100,
+                pageNumber: 1,
+                pageList: [20, 50, 100, 200, 300],
+                url: "GetDishes",
+                rownumbers: true,
+                singleSelect: true,
+                //fitColumns: true,
+                columns: [[
+                    { field: 'id', hidden: true },
+                    { field: 'is_on_top', title: '推荐', width: 50, align: 'center' },
+                    { field: 'type', title: '类型', width: 80, align: 'center' },
+                    { field: 'number', title: '序号', width: 80, align: 'center' },
+                    { field: 'name', title: '名称', width: 160, align: 'center' },
+                    { field: 'price', title: '单价', width: 60, align: 'center' },
+                    { field: 'is_selling', title: '状态', width: 80, align: 'center' },
+                    { field: 'sell_weekday', title: '可售日', width: 160, align: 'center' },
+                    { field: 'sell_time', title: '可售时段', width: 120, align: 'center' },
+                    { field: 'can_delivery', title: '可否配送', width: 60, align: 'center' },
+                    { field: 'is_birthday_meal', title: '是否生日餐', width: 80, align: 'center' },
+                    { field: 'create_time', title: '创建时间', width: 120, align: 'center' },
+                    { field: 'res_name', title: '所属食堂', width: 120, align: 'center' }
+                ]],
+                toolbar: "#dish_toolbar",
+                onDblClickRow: editDish
+            });
+            $("#search").searchbox({
+                searcher: function (value, name) {
+                    $('#dg_dish').datagrid('load', {
+                        searchValue: value
+                    });
+                },
+                prompt: '输入类型或序号或名称搜索'
+            });
+            $(".res_no").combobox({
+                valueField: "value",
+                textField: "text",
+                panelHeight: "auto",
+                required: true,
+                editable: false,
+                value: self.parent.defaultRes,
+                data: self.parent.resCombo,
+                onChange: function (newValue, oldValue) {
+                    if (newValue == "HS") {
+                        $("#birthdayTr").show();
+                    } else {
+                        $("#birthdayTr").hide();
+                    }
+                    var sellTimeValues = $("#sell_time").combobox("getValues");
+                    $("#sell_time").combobox({ url: "@Url.Content("~/Items/GetResTimeSeg?res_no=")" + newValue });
+                    $("#sell_time").combobox("setValues", sellTimeValues);
+                }
+            });
+
+            $("#sell_time").combobox({
+                valueField: "value",
+                textField: "value",
+                panelHeight: "auto",
+                required: true,
+                editable: false,
+                multiple: true
+            });
+
+        })
+
+        function addDish() {
+            $('#fm').form('clear');
+            $('#image1_span').hide();
+            $('#image2_span').hide();
+            $('#image3_span').hide();
+            $('#dlg_dish').dialog('open').dialog('setTitle', '新增菜式');
+            if (self.parent.defaultRes) {
+                $(".res_no").combobox("setValue", self.parent.defaultRes);
+            }
+            if ("HS" == self.parent.defaultRes) {
+                $("#birthdayTr").show();
+            } else {
+                $("#birthdayTr").hide();
+            }
+        }
+        function editDish() {
+            $('#fm').form('clear');
+            var row = $('#dg_dish').datagrid('getSelected');
+            if (row) {
+                $("#fm").form("load", row);
+                $("#image1_span").show().html(row.image_1_name);
+                $("#image2_span").show().html(row.image_2_name);
+                $("#image3_span").show().html(row.image_3_name);
+                if (row.res_no == "HS") {
+                    $("#birthdayTr").show();
+                } else {
+                    $("#birthdayTr").hide();
+                }                
+                $('#dlg_dish').dialog('open').dialog('setTitle', '编辑菜式');
+            }
+        }
+        function toggleStatus() {
+            var row = $('#dg_dish').datagrid('getSelected');
+            if (row) {
+                $.post("ToggleDishStatus", { id: row.id }, function (data) {
+                    if (data.suc) {
+                        $('#dg_dish').datagrid('reload');
+                    }
+                    showMsg(data.msg);
+                })
+            }
+        }
+        function saveDish() {
+            $('#fm').form('submit', {
+                url: 'SaveDish',
+                onSubmit: function () {
+                    return $(this).form('validate');
+                },
+                success: function (data) {
+                    var result = eval('(' + data + ')');
+                    if (result.suc) {
+                        $('#dlg_dish').dialog('close');      // close the dialog
+                        $('#dg_dish').datagrid('reload');    // reload the user data
+                    } else {
+                        showMsg(result.msg);
+                    }
+                }
+            });
+        }
+        function checkPic() {
+            var row = $('#dg_dish').datagrid('getSelected');
+            if (row) {
+                var id = row.id;
+                $("#pic1").attr("src", "CheckPic?id=" + id + "&which=1&code="+Math.random());
+                $("#pic1_name").html(row.image_1_name);
+                $("#pic2").attr("src", "CheckPic?id=" + id + "&which=2&code="+Math.random());
+                $("#pic2_name").html(row.image_2_name);
+                $("#pic3").attr("src", "CheckPic?id=" + id + "&which=3&code="+Math.random());
+                $("#pic3_name").html(row.image_3_name);
+                $('#dlg_image').dialog('open');
+            }
+        }
+        function toggleOnTop() {
+            var row = $('#dg_dish').datagrid('getSelected');
+            if (row) {
+                $.post("ToggleDishOnTop", { id: row.id }, function (data) {
+                    if (data.suc) {
+                        $('#dg_dish').datagrid('reload');
+                    }
+                    showMsg(data.msg);
+                })
+            }
+        }
+    </script>
+
+
+}
+<div class="easyui-layout" data-options="fit:true" id="ly_dish">
+    <div data-options="region:'center'">
+        <table id="dg_dish"></table>
+        <div id="dish_toolbar">
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-add',plain:true,disabled:@ViewData["disable_power"]" onclick="addDish()">新增</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-edit',plain:true,disabled:@ViewData["disable_power"]" onclick="editDish()">修改</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-remove',plain:true,disabled:@ViewData["disable_power"]" onclick="toggleStatus()">下架/在售</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-thumbsUp',plain:true,disabled:@ViewData["disable_power"]" onclick="toggleOnTop()">今日推荐</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-picture',plain:true" onclick="checkPic()">查看图片</a>
+            <input id="search" />
+        </div>
+    </div>
+</div>
+
+<div id="dlg_dish" class="easyui-dialog" style="width:640px;padding:10px 10px" closed="true" buttons="#dlg_dish_buttons">
+    <div class="ftitle"><i class="fa fa-leaf"></i> 菜式信息</div>
+    <form id="fm" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="id" id="id" />
+        <table id="dishDetailTb" cellpadding="2" border="0" cellspacing="3">
+            <tr>
+                <td>类型</td>
+                <td>
+                    <select name="type" class="easyui-combobox" required="true" style="width: 100px;" panelheight="auto">
+                        <option value="菜式">菜式</option>
+                        <option value="套餐">套餐</option>
+                        <option value="酒水">酒水</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </td>
+                <td>序号</td>
+                <td>
+                    <input name="number" class="easyui-validatebox" required="true" style="width:116px;" />
+                </td>
+                <td>名称</td>
+                <td>
+                    <input name="name" class="easyui-validatebox" required="true" style="width:116px;" />
+                </td>
+            </tr>
+            <tr>
+                <td>单价</td>
+                <td>
+                    <input name="price" class="easyui-numberbox" precision="1" required="true" style="width:100px;" />
+                </td>
+                <td>
+                    所属食堂
+                </td>
+                <td>
+                    <input class="res_no" name="res_no" id="res_no" style="width:120px;" />
+                </td> 
+                <td>状态</td>
+                <td>
+                    <select name="is_selling" class="easyui-combobox" required="true" style="width: 120px;" panelheight="auto">
+                        <option value="在售">在售</option>
+                        <option value="下架">下架</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>可售日</td>
+                <td>
+                    <select name="sell_weekday" class="easyui-combobox" multiple="true" required="true" style="width: 100px;" panelheight="auto">
+                        <option value="每天">每天</option>
+                        <option value="周一">周一</option>
+                        <option value="周二">周二</option>
+                        <option value="周三">周三</option>
+                        <option value="周四">周四</option>
+                        <option value="周五">周五</option>
+                        <option value="周六">周六</option>
+                        <option value="周日">周日</option>
+                    </select>
+                </td>
+                <td>可售时段</td>
+                <td>
+                    <input name="sell_time" id="sell_time" class="easyui-combobox" style="width: 120px;" />
+                </td>
+                <td>可配送</td>
+                <td>
+                    <select name="can_delivery" class="easyui-combobox" required="true" style="width: 120px;" panelheight="auto">
+                        <option value="是">是</option>
+                        <option value="否">否</option>
+                    </select>
+                </td>
+            </tr>
+            <tr id="birthdayTr">
+                <td>生日餐</td>
+                <td>
+                    <select name="is_birthday_meal" class="easyui-combobox" style="width: 100px;" panelheight="auto">
+                        <option value="否">否</option>
+                        <option value="是">是</option>
+                    </select>
+                </td>
+                <td></td><td></td> <td></td> <td></td>                
+            </tr>
+            <tr>
+                <td>简介</td>
+                <td colspan="5">
+                    <textarea name="description" cols="66" rows="5" placeholder="可以描述菜式的制作原料、营养价值、制作过程等信息；字数限制：500"></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td>主图</td>
+                <td colspan="5">
+                    <span id="image1_span" style="display:inline-block; width: 120px;overflow:hidden; "></span>
+                    <input class="easyui-filebox" accept="image/*" name="pic1" data-options="buttonText:'<i class=&quot;fa fa-picture-o&quot; &frasl;> 选择图片 ',buttonAlign:'left'" style="width:300px;"/>
+                </td>
+            </tr>
+            <tr>
+                <td>次图1</td>
+                <td colspan="5">
+                    <span id="image2_span" style="display: inline-block; width: 120px; overflow: hidden; "></span>
+                    <input class="easyui-filebox" accept="image/*" name="pic2" data-options="buttonText:'<i class=&quot;fa fa-picture-o&quot; &frasl;> 选择图片 ',buttonAlign:'left'" style="width:300px;" />
+                </td>
+            </tr>
+            <tr>
+                <td>次图2</td>
+                <td colspan="5">
+                    <span id="image3_span" style="display: inline-block; width: 120px; overflow: hidden; "></span>
+                    <input class="easyui-filebox" accept="image/*" name="pic3" data-options="buttonText:'<i class=&quot;fa fa-picture-o&quot; &frasl;> 选择图片 ',buttonAlign:'left'" style="width:300px;" />
+                </td>
+            </tr>
+            <tr>
+                <td colspan="6">
+                    <div style="color:red;">
+                    <i class="fa fa-warning"></i> 
+                        为了达到最佳展示效果和节省空间，请上传尺寸相同，大小不大于1M的图片，且宽和高的比例为2:1或3:2；
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="dlg_dish_buttons">
+    <a href="#" class="easyui-linkbutton" onclick="saveDish()"><i class="fa fa-save"></i> 保存</a>
+    <a href="#" class="easyui-linkbutton" onclick="javascript: $('#dlg_dish').dialog('close')"><i class="fa fa-close"></i> 取消</a>
+</div>
+
+<div id="dlg_image" class="easyui-dialog" style="width:600px;height:400px;padding:10px 20px" closed="true" title="查看图片" buttons="#dlg_image_buttons" maximizable="true" resizable="true">
+    <div class="ftitle">主图：</div>
+    <h2 id="pic1_name"></h2>
+    <img id="pic1" alt="pic1" />
+    <br />
+    <div class="ftitle">次图1：</div>
+    <h2 id="pic2_name"></h2>
+    <img id="pic2" alt="pic2" />
+    <br />
+    <div class="ftitle">次图2：</div>
+    <h2 id="pic3_name"></h2>
+    <img id="pic3" alt="pic3" />
+    <br />
+</div>
+<div id="dlg_image_buttons">
+    <a href="#" class="easyui-linkbutton" onclick="javascript: $('#dlg_image').dialog('close')"><i class="fa fa-close"></i> 关闭</a>
+</div>

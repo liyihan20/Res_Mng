@@ -1,0 +1,110 @@
+﻿@using RestaurantMng.Models;
+@{
+    Layout = null;
+    List<DeskInfoModel> infos = (List<DeskInfoModel>)ViewData["deskInfo"];
+    List<VisualDeskModel> desks = (List<VisualDeskModel>)ViewData["desks"];
+}
+
+
+<link rel="stylesheet" href="@Url.Content("~/Content/tooltipster.bundle.min.css")" />
+<link rel="stylesheet" href="@Url.Content("~/Content/tooltipster/sideTip/themes/tooltipster-sideTip-borderless.min.css")" />
+<style type="text/css">
+    .deskSpan {
+        margin: 2px 0;
+        cursor: pointer;
+    }
+
+    .fullColor {
+        color: #CC0033;
+        opacity: 0.7;
+    }
+
+    .halfColor {
+        color: #449d44;
+        opacity: 0.8;
+    }
+
+    .selectItem{
+        color:#31708f;
+    }
+</style>
+
+<script src="@Url.Content("~/Scripts/tooltipster.bundle.min.js")"></script>
+<script>
+    $(function () {
+        var lastDesk = "";
+        var lastHtml = "";
+
+        $(".deskSpan").on("click", function () {
+            if (lastDesk != "") {
+                $(lastDesk).html(lastHtml);
+            }
+            lastDesk = $(this);
+            lastHtml = $(this).html();
+            $(this).html("<i class='fa fa-fw fa-check-square fa-2x selectItem'></i>");
+            $("#SelectedDesk").val($(this).attr("data-num"));
+
+        });
+
+        $('.tip').tooltipster({
+            theme: 'tooltipster-borderless',
+            trigger: 'click'
+        });                
+    });
+
+</script>
+
+<div id="deskTab" class="easyui-tabs" border="true" height="400" pill="true">
+    @foreach (var info in infos) {
+        <div title="@string.Format("{0}—{1}区", info.belongTo, info.zone)">
+            <div style="border:3px inset;margin:8px 2px;padding:20px 0;text-align:center;">
+                @for (var i = 1; i <= info.maxRow; i++) {
+                    <div>
+                        <span style="display:inline-block;width:20px;">@i</span>
+                        @for (var j = 1; j <= info.maxCol; j++) {
+                            var desk = desks.Where(d => d.belongTo == info.belongTo && d.number == string.Format("{0}{1}-{2}", info.zone, i, j));
+                            if (desk.Count() < 1) {
+                                <span><i class="fa fa-fw fa-square-o fa-2x" style="visibility:hidden"></i></span>
+                            }
+                            else {
+                                if (desk.First().isCancel == true) {
+                                    <span class="tip" title="不可用"><i class="fa fa-fw fa-square fa-2x" style="color:#eee"></i></span>
+                                }
+                                else if (!desk.First().nowCanUse) {
+                                    <span class="tip" title="当前时间不可用"><i class="fa fa-fw fa-square fa-2x" style="color:#eee"></i></span>
+                                }
+                                else {
+                                    string squareCss = "";
+                                    if ((desk.First().seatHasTaken ?? 0) == 0) {
+                                        squareCss = "fa-square-o";
+                                    }
+                                    else if ((desk.First().seatHasTaken ?? 0) >= desk.First().seatQty) {
+                                        squareCss = "fa-square fullColor";
+                                    }
+                                    else {
+                                        squareCss = "fa-square halfColor";
+                                    }
+                                    <span class="deskSpan tip" data-num="@desk.First().number" title="@string.Format("{0}(剩余空位:{1})", desk.First().name,desk.First().seatQty - (desk.First().seatHasTaken??0))"><i class="fa fa-fw fa-2x @squareCss"></i></span>
+                                }
+                            }
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+<input type="hidden" id="SelectedDesk" />
+<table style="width:100%;">
+    <tr>
+        <td>
+            <i class="fa fa-fw fa-2x fa-square-o"></i> 未坐台桌
+        </td>
+
+        <td><i class="fa fa-fw fa-2x fa-square halfColor"></i> 已坐未满台桌</td>
+
+        <td><i class="fa fa-fw fa-2x fa-square fullColor"></i> 已坐满台桌</td>
+
+        <td><i class="fa fa-fw fa-square fa-2x" style="color:#eee"></i> 不可用台桌</td>
+    </tr>
+</table>

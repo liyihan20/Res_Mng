@@ -1,0 +1,157 @@
+﻿
+<script type="text/javascript">
+    $(function () {
+        $("#dg_pfd").datagrid({
+            title: "积分换购列表",
+            fit: true,
+            url: "GetPointsForDish",
+            rownumbers: true,
+            singleSelect: true,
+            fitColumns: true,
+            columns: [[
+                { field: 'id', hidden: true },
+                { field: 'dishName', title: '菜式名称', width: 100, align: 'center' },
+                { field: 'pointsNeed', title: '所需积分', width: 60, align: 'center' },
+                { field: 'fromDate', title: '起始日期', width: 80, align: 'center' },
+                { field: 'endDate', title: '结束日期', width: 80, align: 'center' },
+                { field: 'hasFullFill', title: '已兑换次数', width: 60, align: 'center' },
+                { field: 'isSelling', title: '是否在售', width: 60, align: 'center' },
+                { field: 'resName', title: '所属食堂', width: 60, align: 'center' },
+                { field: 'createDate', title: '创建日期', width: 80, align: 'center' }
+            ]],
+            toolbar: "#pfd_toolbar",
+            onDblClickRow: EditPFD
+        });
+        $("#search").searchbox({
+            searcher: function (value, name) {
+                $('#dg_points').datagrid('load', {
+                    searchValue: value
+                });
+            },
+            prompt: '输入菜式名称搜索'
+        });
+        $(".res_no").combobox({
+            valueField: "value",
+            textField: "text",
+            panelHeight: "auto",
+            required: true,
+            editable: false,
+            value: self.parent.defaultRes,
+            data: self.parent.resCombo,
+            onChange: function (newValue, oldValue) {
+                $("#dishName").combobox({ url: "@Url.Content("~/Items/GetAllSellingDishName?res_no=")" + newValue });
+            }
+        });
+        $("#dishName").combobox({
+            valueField: "value",
+            textField: "value",
+            required: true,
+            editable: false,
+            url: "@Url.Content("~/Items/GetAllSellingDishName?res_no=")" + self.parent.defaultRes
+        });
+
+    });
+
+    function AddPFD() {
+        $('#fm').form('clear');
+        $('#dlg_pfd').dialog('open').dialog('setTitle', '新增积分换购');
+        if (self.parent.defaultRes) {
+            $(".res_no").combobox("setValue", self.parent.defaultRes);
+        }
+    }
+
+    function EditPFD() {
+        $('#fm').form('clear');
+        var row = $('#dg_pfd').datagrid('getSelected');
+        if (row) {
+            $("#fm").form("load", row);
+            $("#dishName").combobox("setValue", row.dishName);
+            $('#dlg_pfd').dialog('open').dialog('setTitle', '修改积分换购');
+        }
+    }
+
+    function Savepfd() {
+        $('#fm').form('submit', {
+            url: 'SavePointsForDish',
+            onSubmit: function () {
+                return $(this).form('validate');
+            },
+            success: function (data) {
+                var result = eval('(' + data + ')');
+                if (result.suc) {
+                    $('#dlg_pfd').dialog('close');      // close the dialog
+                    $('#dg_pfd').datagrid('reload');    // reload the user data
+                } else {
+                    showMsg(result.msg);
+                }
+            }
+        });
+    }
+
+    function ToggleStatus() {
+        var row = $('#dg_pfd').datagrid('getSelected');
+        if (row) {
+            $.post("TogglePointsForDish", { id: row.id }, function (data) {
+                if (data.suc) {
+                    $('#dg_pfd').datagrid('reload');
+                }
+                showMsg(data.msg);
+            })
+        }
+    }
+</script>
+<div class="easyui-layout" data-options="fit:true">
+    <div data-options="region:'center'">
+        <table id="dg_pfd"></table>
+        <div id="pfd_toolbar">
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-add',plain:true,disabled:@ViewData["disabled_power"]" onclick="AddPFD()">新增</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-edit',plain:true,disabled:@ViewData["disabled_power"]" onclick="EditPFD()">修改</a>
+            <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-remove',plain:true,disabled:@ViewData["disabled_power"]" onclick="ToggleStatus()">在售/下架</a>
+            <input id="search" />
+        </div>
+    </div>
+</div>
+
+<div id="dlg_pfd" class="easyui-dialog" style="width:500px;padding:10px 20px" closed="true" buttons="#dlg_pfd_buttons">
+    <div class="ftitle"><i class="fa fa-cube"></i> 积分换购信息</div>
+    <form id="fm" method="post">
+        <input type="hidden" name="id" id="id" />
+        <table cellpadding="2" border="0" cellspacing="3">
+            <tr>
+                <td>所属食堂:</td>
+                <td>
+                    <input class="res_no" name="resNo" style="width:120px;" />
+                </td>
+                <td>菜式名称:</td>
+                <td>
+                    <input class="easyui-combobox" name="dishName" id="dishName" style="width:120px;" />
+                </td>
+            </tr>
+            <tr>
+                <td>所需积分:</td>
+                <td>
+                    <input name="pointsNeed" class="easyui-validatebox" data-options="required:true" style="width:118px;" />
+                </td>
+                <td>是否在售:</td>
+                <td>
+                    <select name="isSelling" class="easyui-combobox" data-options="required:true,editable:false" style="width: 120px;" panelheight="auto">
+                        <option value="在售">在售</option>
+                        <option value="下架">下架</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>起始日期:</td>
+                <td>
+                    <input name="fromDate" class="easyui-datebox" data-options="required:true" style="width:120px;" />
+                </td>
+                <td>结束日期:</td>
+                <td><input name="endDate" class="easyui-datebox" data-options="required:true" style="width:120px;" /></td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="dlg_pfd_buttons">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-ok" onclick="Savepfd()">保存</a>
+    <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript: $('#dlg_pfd').dialog('close')">取消</a>
+</div>

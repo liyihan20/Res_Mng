@@ -1,0 +1,119 @@
+﻿@using RestaurantMng.Models;
+@{
+    Layout = null;
+    dn_order or = (dn_order)ViewData["order"];
+    List<dn_orderEntry> en = (List<dn_orderEntry>)ViewData["orderEntries"];
+    int numInAPage = (int)ViewData["numInAPage"];
+    int pages = (int)Math.Ceiling((decimal)en.Count() / numInAPage);
+}
+<html>
+<head>
+    <title>打印预约订单</title>
+    <style media="print" type="text/css">
+        .noPrint {
+            display: none;
+        }
+
+        .pageNext {
+            page-break-after: always;
+        }
+    </style>
+    <style type="text/css">
+        .dishTable td {
+            /*text-align: center;*/
+            vertical-align: central;
+            overflow: hidden;
+            white-space: nowrap;
+            word-break: keep-all;
+        }
+
+        .wrappeDiv {
+            float: left;
+            width: 6.5cm;
+            height: 9.3cm;
+            border: 2px dotted;
+            margin-right: 0.1cm;
+            margin-bottom: 0.1cm;
+        }
+    </style>
+    <script>
+        function refleshPage() {
+            var num = document.getElementById("numInAPage").value;
+            if (isNaN(num)) {
+                alert("每页行数必须是正整数");
+                return;
+            }
+            num = parseInt(num);
+            if (num < 1 || num > 30) {
+                alert("每页行数不在有效范围[1~30]内");
+                return;
+            }
+            window.location.href = "@Url.Content("~/Order/PrintOrder?id=")" +@or.id +"&numInAPage=" + num;
+        }
+    </script>
+
+</head>
+<body>
+    <div class="noPrint" style="text-align:center;">
+        每页打印行数：
+        <input type="text" id="numInAPage" style="width:50px;" value="@numInAPage" />
+        <input type="button" value="刷新页面" onclick="refleshPage()" />
+        <input type="button" value="打印" onclick="window.print()" />
+    </div>
+    @for (int p = 1; p <= pages; p++) {
+        <div class="wrappeDiv">
+            <table style="width:100%;font-size:small;border-bottom:1px dashed;padding-bottom:2px;">
+                <tr>
+                    <td colspan="2">
+                        <div style="float:left;width:70%;">到餐时间：<b>@(((DateTime)or.arrive_day).ToString("MM-dd HH:mm"))</b></div>
+                        <div style="float:right;width:30%;font-size:xx-small;text-align:right;">页码：<b>@p / @pages</b></div>
+                    </td>
+                </tr>
+                @if (or.is_delivery == true) {
+                    <tr>
+                        <td style="width:40%">收件人：<b>@or.recipient</b></td>
+                        <td style="width:60%">单号：<b>@or.order_no</b></td>
+                    </tr>
+                    <tr>
+                        <td>收件电话：<b>@or.recipient_phone</b></td>
+                        <td>预约时间:<b>@(((DateTime)or.create_time).ToString("MM-dd HH:mm"))</b></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">配送地点：<b>@or.delivery_addr</b></td>
+                    </tr>
+                }
+                else {
+                    <tr>
+                        <td style="width:40%">台桌号：<b>@or.desk_num</b></td>
+                        <td style="width:60%">单号：<b>@or.order_no</b></td>
+                    </tr>
+                    <tr>
+                        <td>下单人：<b>@or.user_name</b></td>
+                        <td>预约时间:<b>@(((DateTime)or.create_time).ToString("MM-dd HH:mm"))</b></td>
+                    </tr>
+                }
+            </table>
+
+            <table style="width:100%;border-spacing:0 2px;font-size:small" class="dishTable" cellspacing="0">                
+                @for (int i = (p - 1) * numInAPage; i < p * numInAPage & i < en.Count(); i++) {
+                    <tr>
+                        <td>
+                            <div>[@(i + 1)] @en[i].dn_dishes.name : @en[i].qty 份</div>
+                            <div style="text-align:center;">
+                                <img src="@string.Concat(Url.Content("~/Items/getCode?code="),or.order_no,"-",i+1)" />
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </table>
+
+        </div>
+        if (p < pages) {
+            @*<div class="pageNext"></div>*@
+        }
+    }
+    @*<div class="wrappeDiv"></div>
+    <div class="wrappeDiv"></div>
+    <div class="wrappeDiv"></div>*@
+</body>
+</html>

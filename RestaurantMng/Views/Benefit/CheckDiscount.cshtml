@@ -1,0 +1,296 @@
+﻿
+<script>
+
+    var discountId = 0;
+    $(function () {
+        $("#dg_discount").datagrid({
+            title: "折扣优惠列表（单击行显示人员）",
+            fit: true,
+            url: "GetDiscountList",
+            rownumbers: true,
+            singleSelect: true,
+            //fitColumns: true,
+            columns: [[
+                { field: 'id', hidden: true },
+                { field: 'discountName', title: '折扣额度', width: 100, align: 'center' },
+                { field: 'forEveryone', title: '适用于', width: 100, align: 'center' },
+                { field: 'fromDate', title: '起始日期', width: 120, align: 'center' },
+                { field: 'endDate', title: '结束日期', width: 120, align: 'center' },
+                { field: 'isOutOfDate', title: '状态', width: 80, align: 'center',
+                styler: function(value,row,index){
+                    if (value == "正常"){
+                        return 'color:green;';
+                    } else {
+                        return 'color:red';
+                    }
+                } },
+                { field: 'comment', title: '备注', width: 120, align: 'center' },
+                { field: 'resName', title: '所属食堂', width: 100, align: 'center' }
+            ]],
+            onClickRow: function (index,row) {
+                discountId = row.id;
+                $("#dg_users").datagrid({ url: "GetDiscountPeople", queryParams: { discountId: discountId } });
+            },
+            toolbar: [{
+                text: '增加',
+                iconCls: 'icon-add',
+                disabled: @ViewData["disabled_power"],
+                handler: function () {
+                    $('#fm').form('clear');
+                    $('#discountTr').hide();
+                    $('#minusTr').hide();
+                    $('#dlg_discount').dialog('open').dialog('setTitle', '新增折扣优惠');
+                    if (self.parent.defaultRes) {
+                        $(".res_no").combobox("setValue", self.parent.defaultRes);
+                    }
+                }
+            }, '-', {
+                text: '修改',
+                iconCls: 'icon-edit',
+                disabled: @ViewData["disabled_power"],
+                handler: function () {                    
+                    var row = $('#dg_discount').datagrid('getSelected');
+                    if (row) {
+                        $('#fm').form('clear');
+                        $("#fm").form("load", row);
+                        if (row.discountName.indexOf("折") > 0) {
+                            $("#discountType").combobox("setValue", "打折");
+                        } else {
+                            $("#discountType").combobox("setValue", "满减");
+                        }
+                        $('#dlg_discount').dialog('open').dialog('setTitle', '编辑折扣优惠');
+                    }
+                }
+            }]
+        });
+
+        $("#dg_users").datagrid({
+            title: "适用人员列表",
+            fit: true,
+            rownumbers: true,
+            selectOnCheck: true,
+            //fitColumns: true,
+            columns: [[
+                { field: 'ck', checkbox: true },
+                { field: 'userNo', title: '厂牌', width: 100, align: 'center' },
+                { field: 'userName', title: '姓名', width: 120, align: 'center' },
+                { field: 'hasDiscountTime', title: '已优惠次数', width: 80, align: 'center' }
+            ]],
+            toolbar: "#toolbar_user"
+        });
+
+        $("#dg_SearchUsers").datagrid({
+            fit: true,
+            rownumbers: true,
+            fitColumns: true,
+            selectOnCheck: true,
+            columns: [[
+                { field: 'ck', checkbox:true },
+                { field: 'empNo', title: '厂牌', width: 80, align: 'center' },
+                { field: 'empName', title: '姓名', width: 80, align: 'center' }
+            ]],
+            toolbar: "#toolbar_SearchUsers"
+        });
+
+        $("#discountType").combobox({
+            onChange: function (newValue, oldValue) {
+                if ("打折" == newValue) {
+                    $('#discountTr').show();
+                    $('#minusTr').hide();
+                } else if ("满减" == newValue) {
+                    $('#discountTr').hide();
+                    $('#minusTr').show();
+                } else {
+                    $('#discountTr').hide();
+                    $('#minusTr').hide();
+                }
+            }
+        });
+
+        $(".res_no").combobox({
+            valueField: "value",
+            textField: "text",
+            panelHeight: "auto",
+            required: true,
+            editable: false,
+            value: self.parent.defaultRes,
+            data: self.parent.resCombo
+        });
+    });
+
+    function SaveDiscount() {
+        $('#fm').form('submit', {
+            url: 'SaveDiscountInfo',
+            onSubmit: function () {
+                return $(this).form('validate');
+            },
+            success: function (data) {
+                var result = eval('(' + data + ')');
+                if (result.suc) {
+                    $('#dlg_discount').dialog('close');      // close the dialog
+                    $('#dg_discount').datagrid('reload');    // reload the user data
+                } else {
+                    showMsg(data.msg);
+                }
+            }
+        });
+    }
+
+    function AddUser() {
+        if (discountId == 0) {
+            showMsg("请先点击优惠条目之后再添加用户");
+            return;
+        }
+        var row = $('#dg_discount').datagrid('getSelected');
+        if (row.forEveryone == "所有人") {
+            showMsg("此优惠适用于所有人，不能手动添加人员");
+        }
+        $('#dlg_user').dialog('open');
+    }
+
+    function RemoveSelectedUsers() {
+        var rows = $("#dg_users").datagrid("getChecked");
+        if (rows) {
+            var empNos = "";
+            for (var i = 0; i < rows.length; i++) {
+                empNos += rows[i].userNo + ",";
+            }
+            $.post("@Url.Content("~/Benefit/RemoveFromDiscountGroup")", {
+            discountId: discountId,
+            empNos: empNos
+        }, function (data) {
+            if (data.suc) {
+                showMsg(data.msg);
+                $("#dg_users").datagrid("reload");
+            }
+        });
+    }
+    }
+
+    function AddSelectedUsers() {
+        var rows = $("#dg_SearchUsers").datagrid("getChecked");
+        if (rows) {
+            var empNos = "", empNames = "";
+            for (var i = 0; i < rows.length; i++) {
+                empNos += rows[i].empNo + ",";
+                empNames += rows[i].empName + ",";
+            }
+            $.post("@Url.Content("~/Benefit/AddIntoDiscountGroup")", {
+                discountId: discountId,
+                empNos: empNos,
+                empNames:empNames
+            }, function (data) {
+                if (data.suc) {
+                    $("#dg_users").datagrid("reload");
+                }
+                showMsg(data.msg);
+            });
+        }
+    }
+
+    function qq(value) {
+        $("#dg_users").datagrid("load", { discountId: discountId, searchValue: value });
+    }
+
+    function searchU(value) {
+        $("#dg_SearchUsers").datagrid({ url: "SearchHrEmp", queryParams: { searchValue: value } });
+    }
+
+</script>
+
+@*layout 布局开始*@
+<div class="easyui-layout" data-options="fit:true">
+    <div data-options="region:'east'" style="width:40%;">
+        <table id="dg_users"></table>@*人员表*@
+    </div>
+    <div data-options="region:'center'">
+        <table id="dg_discount"></table>@*权限优惠表*@
+    </div>
+</div>
+@*layout 布局结束*@
+<!--人员表的工具栏-->
+<div id="toolbar_user">
+    <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-add',plain:true,disabled:@ViewData["disabled_power"]" onclick="AddUser()">增加人员</a>
+    <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-remove',plain:true,disabled:@ViewData["disabled_power"]" onclick="RemoveSelectedUsers()">移除人员</a>
+    <input class="easyui-searchbox" style="width:140px" searcher="qq" prompt="输入厂牌或姓名搜索" />
+</div>
+@*折扣优惠弹出录入框开始*@
+<div id="dlg_discount" class="easyui-dialog" style="width:480px;padding:10px 10px" closed="true" buttons="#dlg_discount_buttons">
+    <div class="ftitle"><i class="fa fa-cut"></i> 折扣优惠信息</div>
+    <form id="fm" method="post">
+        <input type="hidden" name="id" id="id" />
+        <table cellpadding="2" border="0" cellspacing="3">
+            <tr>
+                <td>优惠类型:</td>
+                <td>
+                    <select name="discountType" id="discountType" class="easyui-combobox" required="true" style="width: 120px;" panelheight="auto">
+                        <option value="打折">打折</option>
+                        <option value="满减">满减</option>
+                    </select>
+                </td>
+                <td>适用于:</td>
+                <td>
+                    <select name="forEveryone" class="easyui-combobox" required="true" style="width: 120px;" panelheight="auto">
+                        <option value="指定人">指定人</option>
+                        <option value="所有人">所有人</option>
+                    </select>
+                </td>
+            </tr>
+            <tr id="discountTr">
+                <td>折扣额度:</td>
+                <td colspan="3">
+                    订单<input type="text" class="easyui-numberbox" name="discountRate" data-options="min:0,precision:1,max:10" style="width:60px;">折优惠
+                </td>
+            </tr>
+            <tr id="minusTr">
+                <td>满减额度:</td>
+                <td colspan="3">
+                    订单满
+                    <input type="text" class="easyui-numberbox" name="resumeBiggerThan" data-options="min:0" style="width:80px;">
+                    减
+                    <input type="text" class="easyui-numberbox" name="minusPrice" data-options="min:0" style="width:80px;">
+                </td>
+            </tr>
+            <tr>
+                <td>起始日期:</td>
+                <td>
+                    <input class="easyui-datebox" name="fromDate" style="width:120px;" />
+                </td>
+                <td>结束日期:</td>
+                <td>
+                    <input class="easyui-datebox" name="endDate" style="width:120px;" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    所属食堂
+                </td>
+                <td>
+                    <input class="res_no" name="resNo" id="resNo" style="width:120px;" />
+                </td> 
+                <td>备注:</td>
+                <td>
+                    <input class="easyui-textbox" name="comment" style="width:120px;" />
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="dlg_discount_buttons">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-ok" onclick="SaveDiscount()">保存</a>
+    <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript: $('#dlg_discount').dialog('close')">取消</a>
+</div>
+@*折扣优惠弹出录入框结束*@
+
+@*增加人员弹出框开始*@
+<div id="dlg_user" class="easyui-dialog" style="width:400px;height:300px;" closed="true" buttons="#dlg_user_buttons" title="适用人员搜索">
+    <table id="dg_SearchUsers"></table>
+    <div id="toolbar_SearchUsers">
+        <input class="easyui-searchbox" style="width:380px" searcher="searchU" prompt="输入厂牌或姓名搜索" />
+    </div>
+</div>
+<div id="dlg_user_buttons">
+    <a href="#" class="easyui-linkbutton" iconcls="icon-save" onclick="AddSelectedUsers()">确定添加</a>
+    <a href="#" class="easyui-linkbutton" iconcls="icon-cancel" onclick="javascript: $('#dlg_user').dialog('close')">取消</a>
+</div>
+@*增加人员弹出框结束*@
